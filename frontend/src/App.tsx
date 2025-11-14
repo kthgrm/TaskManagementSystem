@@ -1,35 +1,141 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import Login from '@/pages/Login';
+import Register from '@/pages/Register';
+import Profile from '@/pages/user/Profile';
+import { AdminDashboard } from '@/pages/admin/dashboard';
+import { UserDashboard } from '@/pages/user/dashboard';
+import AppLayout from './layouts/app-layout';
 
-function App() {
-  const [count, setCount] = useState(0)
+// Protected Route Component with Role-Based Access
+function ProtectedRoute({
+  children,
+  allowedRoles
+}: {
+  children: React.ReactNode;
+  allowedRoles?: ('admin' | 'user')[];
+}) {
+  const { isAuthenticated, loading, user } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
+
+  // Check role-based access
+  if (allowedRoles && user?.profile?.role && !allowedRoles.includes(user.profile.role)) {
+    // Redirect to appropriate dashboard if user doesn't have access
+    const redirectPath = user.profile.role === 'admin' ? '/admin/dashboard' : '/user/dashboard';
+    return <Navigate to={redirectPath} />;
+  }
+
+  return <AppLayout>{children}</AppLayout>;
+}
+
+// Get default dashboard path based on user role
+function getDefaultDashboard(role?: 'admin' | 'user'): string {
+  if (role === 'admin') return '/admin/dashboard';
+  return '/user/dashboard';
+}
+
+function AppRoutes() {
+  const { isAuthenticated, user } = useAuth();
+  const defaultDashboard = user?.profile?.role ? getDefaultDashboard(user.profile.role) : '/user/dashboard';
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <Routes>
+      {/* Public Routes */}
+      <Route
+        path="/login"
+        element={isAuthenticated ? <Navigate to={defaultDashboard} /> : <Login />}
+      />
+      <Route
+        path="/register"
+        element={isAuthenticated ? <Navigate to={defaultDashboard} /> : <Register />}
+      />
+
+      {/* Admin Routes */}
+      <Route
+        path="/admin/dashboard"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* User Routes */}
+      <Route
+        path="/user/dashboard"
+        element={
+          <ProtectedRoute allowedRoles={['user']}>
+            <UserDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Default Redirects */}
+      <Route
+        path="/"
+        element={<Navigate to={isAuthenticated ? defaultDashboard : "/login"} />}
+      />
+      <Route
+        path="*"
+        element={<Navigate to={isAuthenticated ? defaultDashboard : "/login"} />}
+      />
+    </Routes>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AuthProvider>
+        <Toaster
+          position='top-center'
+          toastOptions={{
+            duration: 3000,
+            style: {
+              background: '#363636',
+              color: '#fff',
+            },
+            success: {
+              duration: 3000,
+              iconTheme: {
+                primary: '#10b981',
+                secondary: '#fff',
+              },
+            },
+            error: {
+              duration: 4000,
+              iconTheme: {
+                primary: '#ef4444',
+                secondary: '#fff',
+              },
+            },
+          }}
+        />
+        <AppRoutes />
+      </AuthProvider>
+    </Router>
+  );
 }
 
 export default App
+

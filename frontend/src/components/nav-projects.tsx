@@ -1,89 +1,70 @@
-"use client"
+import React from "react"
+import { type LucideIcon } from "lucide-react"
 
-import {
-    Folder,
-    MoreHorizontal,
-    Share,
-    Trash2,
-    type LucideIcon,
-} from "lucide-react"
-
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import {
     SidebarGroup,
+    SidebarGroupContent,
     SidebarGroupLabel,
     SidebarMenu,
-    SidebarMenuAction,
+    SidebarMenuBadge,
     SidebarMenuButton,
     SidebarMenuItem,
     useSidebar,
 } from "@/components/ui/sidebar"
+import { useNavigate } from "react-router-dom"
+import { Avatar } from "./ui/avatar"
 
 export function NavProjects({
-    projects,
+    items,
+    ...props
 }: {
-    projects: {
-        name: string
+    items: {
+        title: string
         url: string
-        icon: LucideIcon
+        badge?: React.ReactNode
     }[]
-}) {
+} & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
     const { isMobile } = useSidebar()
+    const navigate = useNavigate()
+    const [activeProject, setActiveProject] = React.useState(items[0])
 
+    if (!activeProject) {
+        return null
+    }
+
+    const handleProjectChange = (project: typeof items[0]) => {
+        setActiveProject(project)
+        navigate(project.url)
+    }
+
+    const getInitials = (name: string) => {
+        return name
+            .split(' ')
+            .map(word => word[0])
+            .join('')
+            .toUpperCase()
+            .slice(0, 2)
+    }
     return (
-        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+        <SidebarGroup {...props}>
             <SidebarGroupLabel>Projects</SidebarGroupLabel>
-            <SidebarMenu>
-                {projects.map((item) => (
-                    <SidebarMenuItem key={item.name}>
-                        <SidebarMenuButton asChild>
-                            <a href={item.url}>
-                                <item.icon />
-                                <span>{item.name}</span>
-                            </a>
-                        </SidebarMenuButton>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <SidebarMenuAction showOnHover>
-                                    <MoreHorizontal />
-                                    <span className="sr-only">More</span>
-                                </SidebarMenuAction>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                                className="w-48"
-                                side={isMobile ? "bottom" : "right"}
-                                align={isMobile ? "end" : "start"}
-                            >
-                                <DropdownMenuItem>
-                                    <Folder className="text-muted-foreground" />
-                                    <span>View Project</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                    <Share className="text-muted-foreground" />
-                                    <span>Share Project</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem>
-                                    <Trash2 className="text-muted-foreground" />
-                                    <span>Delete Project</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </SidebarMenuItem>
-                ))}
-                <SidebarMenuItem>
-                    <SidebarMenuButton>
-                        <MoreHorizontal />
-                        <span>More</span>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-            </SidebarMenu>
+            <SidebarGroupContent>
+                <SidebarMenu>
+                    {items.map((item) => (
+                        <SidebarMenuItem key={item.title}>
+                            <SidebarMenuButton asChild>
+                                <a href={item.url}>
+                                    <Avatar className="bg-violet-500 text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg text-xs font-semibold">
+                                        {getInitials(item.title)}
+                                    </Avatar>
+                                    <span>{item.title}</span>
+                                </a>
+                            </SidebarMenuButton>
+                            {item.badge && <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>}
+                        </SidebarMenuItem>
+                    ))}
+                </SidebarMenu>
+            </SidebarGroupContent>
         </SidebarGroup>
     )
 }

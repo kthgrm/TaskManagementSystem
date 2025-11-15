@@ -3,9 +3,17 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
-import Profile from '@/pages/user/Profile';
+import Profile from '@/pages/Profile';
 import { AdminDashboard } from '@/pages/admin/dashboard';
 import { UserDashboard } from '@/pages/user/dashboard';
+import { UserTasks } from '@/pages/user/tasks';
+import { UserProjects } from '@/pages/user/projects';
+import { ProjectDetail } from '@/pages/user/projects/detail';
+import UsersPage from '@/pages/admin/users';
+import ProjectsPage from '@/pages/admin/projects';
+import TasksPage from '@/pages/admin/tasks';
+import ReportsPage from '@/pages/admin/reports';
+import AuditTrailPage from '@/pages/admin/audit_trail';
 import AppLayout from './layouts/app-layout';
 
 // Protected Route Component with Role-Based Access
@@ -71,6 +79,46 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/admin/users"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <UsersPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/projects"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <ProjectsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/tasks"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <TasksPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/reports"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <ReportsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/audit-trail"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AuditTrailPage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* User Routes */}
       <Route
@@ -81,6 +129,33 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/user/tasks"
+        element={
+          <ProtectedRoute allowedRoles={['user']}>
+            <UserTasks />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/user/projects"
+        element={
+          <ProtectedRoute allowedRoles={['user']}>
+            <UserProjects />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Project Routes */}
+      <Route
+        path="/project/:projectId"
+        element={
+          <ProtectedRoute>
+            <ProjectDetail />
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/profile"
         element={

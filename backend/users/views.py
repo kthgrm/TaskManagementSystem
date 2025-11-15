@@ -15,7 +15,7 @@ from authentication.serializers import UserSerializer
 class AdminUserListView(generics.ListAPIView):
     """
     API endpoint for admin to list all users
-    GET /api/users/admin/users/
+    GET /api/users/
     """
     queryset = User.objects.all().select_related('profile')
     serializer_class = UserSerializer
@@ -45,7 +45,7 @@ class AdminUserListView(generics.ListAPIView):
 class AdminUserDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     API endpoint for admin to view, update, or delete a specific user
-    GET/PUT/PATCH/DELETE /api/users/admin/users/<id>/
+    GET/PUT/PATCH/DELETE /api/users/<id>/
     """
     queryset = User.objects.all().select_related('profile')
     serializer_class = UserSerializer

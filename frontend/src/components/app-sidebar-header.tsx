@@ -1,6 +1,7 @@
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import type { BreadcrumbItem as BreadcrumbItemType } from '@/types';
+import { Bell, Calendar } from 'lucide-react';
 
 export function AppSidebarHeader({ breadcrumbs = [] }: { breadcrumbs?: BreadcrumbItemType[] }) {
     return (
@@ -8,6 +9,16 @@ export function AppSidebarHeader({ breadcrumbs = [] }: { breadcrumbs?: Breadcrum
             <div className="flex items-center gap-2">
                 <SidebarTrigger className="-ml-1" />
                 <Breadcrumbs breadcrumbs={breadcrumbs} />
+            </div>
+            <div className='flex items-center ml-auto gap-4'>
+                <div className='flex items-center text-sm text-gray-500'>
+                    <Calendar className='mr-2 w-4 h-4' />
+                    <span>{new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                </div>
+                {/*Notifications*/}
+                <div className='rounded-full bg-gray-100 w-8 h-8 flex items-center justify-center'>
+                    <Bell className='m-2 text-violet-500' />
+                </div>
             </div>
         </header>
     );

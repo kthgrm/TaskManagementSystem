@@ -3,6 +3,7 @@ import {
     LogOut,
     User as UserIcon,
 } from "lucide-react"
+import { useState } from "react"
 
 import {
     Avatar,
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Link } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
+import { LogoutConfirmation } from "@/components/LogoutConfirmation"
 import type { User } from "@/types/auth.types"
 
 export function NavUser({
@@ -35,15 +37,16 @@ export function NavUser({
 }) {
     const { isMobile } = useSidebar()
     const { logout } = useAuth()
+    const [showLogoutDialog, setShowLogoutDialog] = useState(false)
 
     const handleLogout = () => {
-        logout();
+        setShowLogoutDialog(true)
     }
 
     if (!user) return null;
 
     const displayName = user.first_name || user.username;
-    const avatarUrl = user.profile?.profile_picture || "";
+    const avatarUrl = user.profile_picture || "";
     const initials = displayName.substring(0, 2).toUpperCase();
 
     return (
@@ -100,6 +103,11 @@ export function NavUser({
                     </DropdownMenuContent>
                 </DropdownMenu>
             </SidebarMenuItem>
+            <LogoutConfirmation
+                open={showLogoutDialog}
+                onOpenChange={setShowLogoutDialog}
+                onConfirm={logout}
+            />
         </SidebarMenu>
     )
 }

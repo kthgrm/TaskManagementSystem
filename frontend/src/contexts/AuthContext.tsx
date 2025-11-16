@@ -11,6 +11,7 @@ interface AuthContextType {
     login: (credentials: LoginCredentials) => Promise<void>;
     register: (data: RegisterData) => Promise<void>;
     logout: () => Promise<void>;
+    logoutWithConfirmation: (callback: () => void) => void;
     updateUser: (user: User) => void;
     isAuthenticated: boolean;
 }
@@ -23,29 +24,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Check for stored token and user on mount
-        const storedToken = localStorage.getItem('token');
+        // Check if user is authenticated by fetching profile
         const storedUser = localStorage.getItem('user');
 
-        if (storedToken && storedUser) {
-            setToken(storedToken);
-            setUser(JSON.parse(storedUser));
-            // Optionally fetch fresh user data
-            fetchCurrentUser(storedToken);
+        if (storedUser) {
+            // Try to fetch current user from session
+            fetchCurrentUser();
         } else {
             setLoading(false);
         }
     }, []);
 
-    const fetchCurrentUser = async (authToken: string) => {
+    const fetchCurrentUser = async () => {
         try {
-            const userData = await authService.getCurrentUser();
+            const userData = await authService.getProfile();
             setUser(userData);
+            setToken('session'); // Placeholder to indicate authenticated
             localStorage.setItem('user', JSON.stringify(userData));
         } catch (error) {
             console.error('Failed to fetch user:', error);
-            // Clear invalid token
-            localStorage.removeItem('token');
+            // Clear invalid session
             localStorage.removeItem('user');
             setToken(null);
             setUser(null);
@@ -57,15 +55,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const login = async (credentials: LoginCredentials) => {
         try {
             const response = await authService.login(credentials);
-            setToken(response.token);
+            setToken('session'); // Session-based, no actual token
             setUser(response.user);
-            localStorage.setItem('token', response.token);
             localStorage.setItem('user', JSON.stringify(response.user));
             toast.success(response.message || 'Login successful!');
         } catch (error: any) {
-            const errorMessage = error.response?.data?.non_field_errors?.[0] ||
+            const errorMessage = error.response?.data?.error ||
+                error.response?.data?.non_field_errors?.[0] ||
                 error.response?.data?.detail ||
-                'Login failed. Please try again.';
+                'Login failed. Please check your credentials.';
             toast.error(errorMessage);
             throw error;
         }
@@ -74,9 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const register = async (data: RegisterData) => {
         try {
             const response = await authService.register(data);
-            setToken(response.token);
+            setToken('session'); // Session-based, no actual token
             setUser(response.user);
-            localStorage.setItem('token', response.token);
             localStorage.setItem('user', JSON.stringify(response.user));
             toast.success(response.message || 'Registration successful!');
         } catch (error: any) {
@@ -98,17 +95,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             await authService.logout();
             setToken(null);
             setUser(null);
-            localStorage.removeItem('token');
             localStorage.removeItem('user');
             toast.success('Logged out successfully');
         } catch (error) {
             // Still logout locally even if API call fails
             setToken(null);
             setUser(null);
-            localStorage.removeItem('token');
             localStorage.removeItem('user');
             toast.error('Logout failed, but you have been logged out locally');
         }
+    };
+
+    const logoutWithConfirmation = (callback: () => void) => {
+        // This will be used by components to trigger the confirmation dialog
+        callback();
     };
 
     const updateUser = (updatedUser: User) => {
@@ -123,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         logout,
+        logoutWithConfirmation,
         updateUser,
         isAuthenticated: !!token && !!user,
     };

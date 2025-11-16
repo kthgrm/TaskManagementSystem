@@ -15,7 +15,7 @@ export default function Register() {
         username: '',
         email: '',
         password: '',
-        password_confirm: '',
+        password2: '',
         first_name: '',
         last_name: '',
     });
@@ -23,7 +23,7 @@ export default function Register() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (formData.password !== formData.password_confirm) {
+        if (formData.password !== formData.password2) {
             return;
         }
 
@@ -131,13 +131,13 @@ export default function Register() {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="password_confirm">Confirm Password</Label>
+                            <Label htmlFor="password2">Confirm Password</Label>
                             <Input
-                                id="password_confirm"
-                                name="password_confirm"
+                                id="password2"
+                                name="password2"
                                 type="password"
                                 placeholder="Confirm your password"
-                                value={formData.password_confirm}
+                                value={formData.password2}
                                 onChange={handleChange}
                                 required
                                 disabled={isLoading}

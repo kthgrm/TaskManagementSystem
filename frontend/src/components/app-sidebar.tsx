@@ -54,9 +54,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   // Determine navigation items based on user role
   const navItems = React.useMemo(() => {
-    if (!user?.profile?.role) return userNavItems;
-    return user.profile.role === 'admin' ? adminNavItems : userNavItems;
-  }, [user?.profile?.role]);
+    if (!user?.role) return userNavItems;
+    return user.role === 'admin' ? adminNavItems : userNavItems;
+  }, [user?.role]);
 
   return (
     <Sidebar className="border-r-0" {...props}>
@@ -65,7 +65,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navItems} />
-        {user?.profile?.role === 'user' && <NavProjects items={sampleProjects} />}
+        {user?.role === 'user' && <NavProjects items={sampleProjects} />}
         <NavUser user={user} />
       </SidebarContent>
       <SidebarRail />

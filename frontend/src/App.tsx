@@ -39,9 +39,9 @@ function ProtectedRoute({
   }
 
   // Check role-based access
-  if (allowedRoles && user?.profile?.role && !allowedRoles.includes(user.profile.role)) {
+  if (allowedRoles && user?.role && !allowedRoles.includes(user.role)) {
     // Redirect to appropriate dashboard if user doesn't have access
-    const redirectPath = user.profile.role === 'admin' ? '/admin/dashboard' : '/user/dashboard';
+    const redirectPath = user.role === 'admin' ? '/admin/dashboard' : '/user/dashboard';
     return <Navigate to={redirectPath} />;
   }
 
@@ -56,7 +56,7 @@ function getDefaultDashboard(role?: 'admin' | 'user'): string {
 
 function AppRoutes() {
   const { isAuthenticated, user } = useAuth();
-  const defaultDashboard = user?.profile?.role ? getDefaultDashboard(user.profile.role) : '/user/dashboard';
+  const defaultDashboard = user?.role ? getDefaultDashboard(user.role) : '/user/dashboard';
 
   return (
     <Routes>

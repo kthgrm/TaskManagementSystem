@@ -5,17 +5,11 @@ export interface User {
   email: string;
   first_name: string;
   last_name: string;
-  profile: Profile;
-  date_joined: string;
-}
-
-export interface Profile {
+  phone: string | null;
   role: 'admin' | 'user';
-  bio: string | null;
   profile_picture: string | null;
-  phone_number: string | null;
-  created_at: string;
-  updated_at: string;
+  date_joined: string;
+  last_login?: string;
 }
 
 // Auth Types
@@ -28,15 +22,16 @@ export interface RegisterData {
   username: string;
   email: string;
   password: string;
-  password_confirm: string;
+  password2: string;
   first_name?: string;
   last_name?: string;
+  phone?: string;
 }
 
 export interface AuthResponse {
   message: string;
   user: User;
-  token: string;
+  token?: string; // Optional for session-based auth
 }
 
 export interface ChangePasswordData {
@@ -49,7 +44,6 @@ export interface UpdateProfileData {
   email?: string;
   first_name?: string;
   last_name?: string;
-  bio?: string;
-  phone_number?: string;
+  phone?: string;
   profile_picture?: File | null;
 }

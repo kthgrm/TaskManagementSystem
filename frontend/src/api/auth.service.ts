@@ -11,31 +11,25 @@ import type {
 export const authService = {
   // Register new user
   register: async (data: RegisterData): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/api/auth/register/', data);
+    const response = await api.post<AuthResponse>('users/register/', data);
     return response.data;
   },
 
   // Login user
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/api/auth/login/', credentials);
+    const response = await api.post<AuthResponse>('users/login/', credentials);
     return response.data;
   },
 
   // Logout user
   logout: async (): Promise<{ message: string }> => {
-    const response = await api.post<{ message: string }>('/api/auth/logout/');
+    const response = await api.post<{ message: string }>('users/logout/');
     return response.data;
   },
 
-  // Get current user details
-  getCurrentUser: async (): Promise<User> => {
-    const response = await api.get<User>('/api/auth/me/');
-    return response.data;
-  },
-
-  // Get user profile
+  // Get user profile (current user details)
   getProfile: async (): Promise<User> => {
-    const response = await api.get<User>('/api/auth/profile/');
+    const response = await api.get<User>('users/profile/');
     return response.data;
   },
 
@@ -54,7 +48,7 @@ export const authService = {
     });
 
     const response = await api.patch<{ message: string; user: User }>(
-      '/api/auth/profile/',
+      'users/profile/',
       formData,
       {
         headers: {
@@ -68,7 +62,7 @@ export const authService = {
   // Change password
   changePassword: async (data: ChangePasswordData): Promise<{ message: string; token: string }> => {
     const response = await api.post<{ message: string; token: string }>(
-      '/api/auth/change-password/',
+      'users/change-password/',
       data
     );
     return response.data;
@@ -76,7 +70,7 @@ export const authService = {
 
   // Delete account
   deleteAccount: async (): Promise<{ message: string }> => {
-    const response = await api.delete<{ message: string }>('/api/auth/delete-account/');
+    const response = await api.delete<{ message: string }>('users/delete-account/');
     return response.data;
   },
 };

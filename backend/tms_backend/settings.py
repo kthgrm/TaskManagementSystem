@@ -40,8 +40,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
-    'authentication',
-    'users',
+    'api',
 ]
 
 MIDDLEWARE = [
@@ -127,10 +126,13 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Custom User Model
+AUTH_USER_MODEL = 'api.User'
+
 # REST Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -139,6 +141,7 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 10,
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
     ],
     'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
     'NON_FIELD_ERRORS_KEY': 'error',
@@ -146,8 +149,27 @@ REST_FRAMEWORK = {
 }
 
 # CORS Configuration
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_CREDENTIALS = False
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:5173',  # Vite default
+    'http://localhost:3000',  # React default
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:3000',
+]
+CORS_ALLOW_CREDENTIALS = True
+
+# CSRF Configuration
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:3000',
+]
+
+# Session Configuration
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_HTTPONLY = False  # JavaScript needs to read this
 
 # Media Files Configuration
 MEDIA_URL = '/media/'

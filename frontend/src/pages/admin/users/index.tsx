@@ -1,79 +1,80 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DataTable } from '@/components/data-table';
 import { Button } from '@/components/ui/button';
-import { UserPlus } from 'lucide-react';
-import { columns } from './components/columns';
-
-type User = {
-    id: number;
-    username: string;
-    email: string;
-    fullName: string;
-    role: 'admin' | 'user';
-    status: 'active' | 'inactive';
-    projectCount: number;
-    taskCount: number;
-    dateJoined: string;
-};
-
-const testUsers: User[] = [
-    {
-        id: 1,
-        username: 'john_doe',
-        email: 'john.doe@example.com',
-        fullName: 'John Doe',
-        role: 'admin',
-        status: 'active',
-        projectCount: 5,
-        taskCount: 23,
-        dateJoined: '2024-01-15',
-    },
-    {
-        id: 2,
-        username: 'jane_smith',
-        email: 'jane.smith@example.com',
-        fullName: 'Jane Smith',
-        role: 'user',
-        status: 'active',
-        projectCount: 3,
-        taskCount: 15,
-        dateJoined: '2024-02-20',
-    },
-    {
-        id: 3,
-        username: 'bob_wilson',
-        email: 'bob.wilson@example.com',
-        fullName: 'Bob Wilson',
-        role: 'user',
-        status: 'active',
-        projectCount: 2,
-        taskCount: 8,
-        dateJoined: '2024-03-10',
-    },
-    {
-        id: 4,
-        username: 'alice_brown',
-        email: 'alice.brown@example.com',
-        fullName: 'Alice Brown',
-        role: 'user',
-        status: 'inactive',
-        projectCount: 1,
-        taskCount: 3,
-        dateJoined: '2024-04-05',
-    },
-    {
-        id: 5,
-        username: 'charlie_davis',
-        email: 'charlie.davis@example.com',
-        fullName: 'Charlie Davis',
-        role: 'user',
-        status: 'active',
-        projectCount: 4,
-        taskCount: 18,
-        dateJoined: '2024-05-12',
-    },
-];
+import { UserPlus, Loader2 } from 'lucide-react';
+import { createColumns } from './components/columns';
+import { DeleteUserDialog } from './components/DeleteUserDialog';
+import { userService, type User } from '@/api/user.service';
+import toast from 'react-hot-toast';
 
 export default function UsersPage() {
+    const navigate = useNavigate();
+    const [users, setUsers] = useState<User[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
+    useEffect(() => {
+        loadUsers();
+    }, []);
+
+    const loadUsers = async () => {
+        try {
+            setLoading(true);
+            const data = await userService.getAllUsers();
+            setUsers(data);
+        } catch (error: any) {
+            console.error('Error loading users:', error);
+            toast.error(error.response?.data?.detail || 'Failed to load users');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteUser = (user: User) => {
+        setSelectedUser(user);
+        setShowDeleteDialog(true);
+    };
+
+    const handleToggleStatus = async (user: User) => {
+        try {
+            await userService.toggleUserStatus(user.id);
+            toast.success(`User ${user.is_active ? 'deactivated' : 'activated'} successfully`);
+            loadUsers();
+        } catch (error: any) {
+            console.error('Error toggling user status:', error);
+            toast.error(error.response?.data?.error || 'Failed to toggle user status');
+        }
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!selectedUser) return;
+
+        try {
+            await userService.deleteUser(selectedUser.id);
+            toast.success('User deleted successfully');
+            loadUsers();
+            setShowDeleteDialog(false);
+        } catch (error: any) {
+            console.error('Error deleting user:', error);
+            toast.error(error.response?.data?.error || 'Failed to delete user');
+        }
+    };
+
+    const columns = createColumns({
+        onDelete: handleDeleteUser,
+        onToggleStatus: handleToggleStatus,
+    });
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-96">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -81,12 +82,20 @@ export default function UsersPage() {
                     <h1 className="text-3xl font-bold tracking-tight">Users</h1>
                     <p className="text-muted-foreground">Manage system users and their roles</p>
                 </div>
-                <Button>
+                <Button onClick={() => navigate('/admin/users/create')}>
                     <UserPlus className="mr-2 h-4 w-4" />
                     Add User
                 </Button>
             </div>
-            <DataTable columns={columns} data={testUsers} />
+
+            <DataTable columns={columns} data={users} />
+
+            <DeleteUserDialog
+                open={showDeleteDialog}
+                onOpenChange={setShowDeleteDialog}
+                onConfirm={handleConfirmDelete}
+                userName={selectedUser?.username || ''}
+            />
         </div>
     );
 }

@@ -1,29 +1,28 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Edit, MoreHorizontal, Trash2 } from "lucide-react";
+import { Edit, Eye, MoreHorizontal, Trash2, UserCheck, UserX } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import type { User } from "@/api/user.service";
 
-type User = {
-    id: number;
-    username: string;
-    email: string;
-    fullName: string;
-    role: 'admin' | 'user';
-    status: 'active' | 'inactive';
-    projectCount: number;
-    taskCount: number;
-    dateJoined: string;
-};
+interface ColumnActions {
+    onDelete: (user: User) => void;
+    onToggleStatus: (user: User) => void;
+}
 
-export const columns: ColumnDef<User>[] = [
+export const createColumns = (actions: ColumnActions): ColumnDef<User>[] => [
     {
         accessorKey: 'username',
         header: 'Username',
     },
     {
-        accessorKey: 'fullName',
+        accessorKey: 'full_name',
         header: 'Full Name',
+        cell: ({ row }) => {
+            const fullName = row.getValue('full_name') as string;
+            return fullName || '-';
+        },
     },
     {
         accessorKey: 'email',
@@ -54,21 +53,36 @@ export const columns: ColumnDef<User>[] = [
         },
     },
     {
-        accessorKey: 'projectCount',
+        accessorKey: 'project_count',
         header: 'Projects',
+        cell: ({ row }) => {
+            const count = row.getValue('project_count') as number;
+            return count || 0;
+        },
     },
     {
-        accessorKey: 'taskCount',
+        accessorKey: 'task_count',
         header: 'Tasks',
+        cell: ({ row }) => {
+            const count = row.getValue('task_count') as number;
+            return count || 0;
+        },
     },
     {
-        accessorKey: 'dateJoined',
+        accessorKey: 'date_joined',
         header: 'Date Joined',
+        cell: ({ row }) => {
+            const date = row.getValue('date_joined') as string;
+            return new Date(date).toLocaleDateString();
+        },
     },
     {
         id: 'actions',
         cell: ({ row }) => {
             const user = row.original;
+            const isActive = user.status === 'active' || user.is_active;
+            const navigate = useNavigate();
+
             return (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -79,15 +93,31 @@ export const columns: ColumnDef<User>[] = [
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => navigator.clipboard.writeText(user.email)}>
-                            Copy email
+                        <DropdownMenuItem onClick={() => navigate(`/admin/users/${user.id}`)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View details
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate(`/admin/users/${user.id}/edit`)}>
                             <Edit className="mr-2 h-4 w-4" />
                             Edit user
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
+                        <DropdownMenuItem onClick={() => actions.onToggleStatus(user)}>
+                            {isActive ? (
+                                <>
+                                    <UserX className="mr-2 h-4 w-4" />
+                                    Deactivate
+                                </>
+                            ) : (
+                                <>
+                                    <UserCheck className="mr-2 h-4 w-4" />
+                                    Activate
+                                </>
+                            )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => actions.onDelete(user)}
+                        >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete user
                         </DropdownMenuItem>

@@ -10,14 +10,27 @@ class TaskSerializer(serializers.ModelSerializer):
     )
     created_by_username = serializers.CharField(source='created_by.username', read_only=True)
     assigned_to_username = serializers.CharField(source='assigned_to.username', read_only=True, allow_null=True)
-    project_name = serializers.CharField(source='project.name', read_only=True)
+    assigned_to_details = serializers.SerializerMethodField()
+    project_name = serializers.CharField(source='project.title', read_only=True)
 
     class Meta:
         model = Task
         fields = ['id', 'title', 'description', 'project', 'project_name',
-                  'assigned_to', 'assigned_to_username', 'created_by', 'created_by_username',
+                  'assigned_to', 'assigned_to_username', 'assigned_to_details', 
+                  'created_by', 'created_by_username',
                   'priority', 'status', 'due_date', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
+
+    def get_assigned_to_details(self, obj):
+        if obj.assigned_to:
+            return {
+                'id': obj.assigned_to.id,
+                'username': obj.assigned_to.username,
+                'email': obj.assigned_to.email,
+                'first_name': obj.assigned_to.first_name,
+                'last_name': obj.assigned_to.last_name
+            }
+        return None
 
 
 class TaskCreateUpdateSerializer(serializers.ModelSerializer):

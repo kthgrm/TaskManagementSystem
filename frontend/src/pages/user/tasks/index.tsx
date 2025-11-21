@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -13,104 +14,22 @@ import {
 import {
     MoreHorizontal,
     Search,
-    Plus,
     CheckCircle2,
     Clock,
     AlertCircle,
     ChevronDown,
     ChevronRight,
-    MessageSquare,
-    Calendar as CalendarIcon
+    Calendar as CalendarIcon,
+    Clipboard,
+    Loader2
 } from 'lucide-react';
-
-type Task = {
-    id: number;
-    title: string;
-    description: string;
-    status: 'todo' | 'in_progress' | 'completed' | 'blocked';
-    priority: 'low' | 'medium' | 'high';
-    project: string;
-    dueDate: string;
-    assignedDate: string;
-};
-
-// Test data
-const testTasks: Task[] = [
-    {
-        id: 1,
-        title: "Update user authentication flow",
-        description: "Implement OAuth 2.0 for better security",
-        status: "in_progress",
-        priority: "high",
-        project: "Authentication System",
-        dueDate: "2025-11-14",
-        assignedDate: "2025-11-10"
-    },
-    {
-        id: 2,
-        title: "Design new dashboard layout",
-        description: "Create wireframes and mockups",
-        status: "todo",
-        priority: "medium",
-        project: "UI Redesign",
-        dueDate: "2025-11-15",
-        assignedDate: "2025-11-12"
-    },
-    {
-        id: 3,
-        title: "Fix bug in payment module",
-        description: "Users can't complete checkout process",
-        status: "in_progress",
-        priority: "high",
-        project: "Payment Gateway",
-        dueDate: "2025-11-18",
-        assignedDate: "2025-11-08"
-    },
-    {
-        id: 4,
-        title: "Write API documentation",
-        description: "Document all REST endpoints",
-        status: "todo",
-        priority: "low",
-        project: "Documentation",
-        dueDate: "2025-11-20",
-        assignedDate: "2025-11-11"
-    },
-    {
-        id: 6,
-        title: "Implement search functionality",
-        description: "Add full-text search for projects and tasks",
-        status: "in_progress",
-        priority: "medium",
-        project: "Search Feature",
-        dueDate: "2025-11-22",
-        assignedDate: "2025-11-09"
-    },
-    {
-        id: 8,
-        title: "Create user onboarding flow",
-        description: "Design step-by-step tutorial for new users",
-        status: "todo",
-        priority: "low",
-        project: "User Experience",
-        dueDate: "2025-11-28",
-        assignedDate: "2025-11-13"
-    },
-    {
-        id: 9,
-        title: "Review pull requests",
-        description: "Code review for authentication module",
-        status: "todo",
-        priority: "medium",
-        project: "Authentication System",
-        dueDate: "",
-        assignedDate: "2025-11-14"
-    },
-];
+import { taskService, type Task } from '@/api/task.service';
+import toast from 'react-hot-toast';
+import { EditTaskDialog } from '../projects/components/EditTaskDialog';
 
 // Helper function to categorize tasks by date
 const categorizeTasksByDate = (tasks: Task[]) => {
-    const now = new Date('2025-11-15'); // Current date
+    const now = new Date();
     const today = new Date(now);
     today.setHours(0, 0, 0, 0);
 
@@ -129,11 +48,16 @@ const categorizeTasksByDate = (tasks: Task[]) => {
         thisWeek: [] as Task[],
         nextWeek: [] as Task[],
         later: [] as Task[],
+        noDueDate: [] as Task[],
     };
 
     tasks.forEach(task => {
+        if (!task.due_date) {
+            categories.noDueDate.push(task);
+            return;
+        }
 
-        const dueDate = new Date(task.dueDate);
+        const dueDate = new Date(task.due_date);
         dueDate.setHours(0, 0, 0, 0);
 
         if (dueDate < today) {
@@ -153,43 +77,88 @@ const categorizeTasksByDate = (tasks: Task[]) => {
 };
 
 const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", icon: any }> = {
-        todo: { variant: "outline", icon: AlertCircle },
-        in_progress: { variant: "secondary", icon: Clock },
-        completed: { variant: "default", icon: CheckCircle2 },
-        blocked: { variant: "destructive", icon: AlertCircle },
+    const variants: Record<string, { className: string, icon: any, label: string }> = {
+        todo: { className: "bg-gray-100 text-gray-700", icon: AlertCircle, label: "To Do" },
+        in_progress: { className: "bg-yellow-100 text-yellow-700", icon: Clock, label: "In Progress" },
+        completed: { className: "bg-green-100 text-green-700", icon: CheckCircle2, label: "Completed" },
     };
     const config = variants[status] || variants.todo;
     const Icon = config.icon;
     return (
-        <Badge variant={config.variant} className="flex items-center gap-1 w-fit">
+        <Badge className={`${config.className} flex items-center gap-1 w-fit border-0`}>
             <Icon className="h-3 w-3" />
-            {status.replace('_', ' ')}
+            {config.label}
+        </Badge>
+    );
+};
+
+const getPriorityBadge = (priority: string) => {
+    const variants: Record<string, string> = {
+        low: "bg-blue-100 text-blue-700",
+        medium: "bg-yellow-100 text-yellow-700",
+        high: "bg-red-100 text-red-700",
+    };
+    const className = variants[priority] || variants.medium;
+    return (
+        <Badge className={`${className} border-0 capitalize`}>
+            {priority}
         </Badge>
     );
 };
 
 // Task row component
-const TaskRow = ({ task }: { task: Task }) => {
+const TaskRow = ({ task, onTaskUpdate, onTaskClick }: { task: Task; onTaskUpdate: () => void; onTaskClick: (task: Task) => void }) => {
+    const navigate = useNavigate();
+
+    const handleMarkComplete = async () => {
+        try {
+            await taskService.updateTask(task.id, {
+                title: task.title,
+                description: task.description,
+                project: task.project,
+                assigned_to: task.assigned_to,
+                priority: task.priority,
+                status: 'completed',
+                due_date: task.due_date || undefined,
+            });
+            toast.success('Task marked as completed');
+            onTaskUpdate();
+        } catch (error) {
+            console.error('Error updating task:', error);
+            toast.error('Failed to update task');
+        }
+    };
+
+    const handleViewProject = () => {
+        navigate(`/user/projects/${task.project}`);
+    };
+
     return (
         <div className="flex items-center gap-4 py-3 px-4 border-b hover:bg-muted/50 transition-colors">
             <div className="flex items-center gap-3 flex-1 min-w-0">
-                <MessageSquare className="h-4 w-4 text-muted-foreground shrink-0" />
+                <Clipboard className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{task.title}</p>
+                    <button
+                        onClick={() => onTaskClick(task)}
+                        className="font-medium text-sm hover:underline text-left"
+                    >
+                        {task.title}
+                    </button>
+                    {task.description && (
+                        <p className="text-xs text-muted-foreground truncate">{task.description}</p>
+                    )}
                 </div>
             </div>
             <div className="flex items-center gap-4 shrink-0">
-                <div className="w-32 text-sm text-muted-foreground">
+                <div className="w-32">
                     {getStatusBadge(task.status)}
-                </div>
-                <div className="w-40 text-sm truncate">{task.project}</div>
-                <div className="w-32 text-sm text-muted-foreground flex items-center gap-1">
-                    <CalendarIcon className="h-4 w-4" />
-                    {task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No date'}
                 </div>
                 <div className="w-24">
-                    {getStatusBadge(task.status)}
+                    {getPriorityBadge(task.priority)}
+                </div>
+                <div className="w-32 text-sm text-muted-foreground flex items-center gap-1">
+                    <CalendarIcon className="h-4 w-4" />
+                    {task.due_date ? new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No date'}
                 </div>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -200,11 +169,18 @@ const TaskRow = ({ task }: { task: Task }) => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                        <DropdownMenuItem>Mark as Completed</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onTaskClick(task)}>
+                            View Details
+                        </DropdownMenuItem>
+                        {task.status !== 'completed' && (
+                            <DropdownMenuItem onClick={handleMarkComplete}>
+                                Mark as Completed
+                            </DropdownMenuItem>
+                        )}
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>Update Status</DropdownMenuItem>
-                        <DropdownMenuItem>Add Comment</DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleViewProject}>
+                            View Project
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
@@ -213,11 +189,13 @@ const TaskRow = ({ task }: { task: Task }) => {
 };
 
 // Task group component
-const TaskGroup = ({ title, count, tasks, color = "text-foreground" }: {
+const TaskGroup = ({ title, count, tasks, color = "text-foreground", onTaskUpdate, onTaskClick }: {
     title: string;
     count: number;
     tasks: Task[];
     color?: string;
+    onTaskUpdate: () => void;
+    onTaskClick: (task: Task) => void;
 }) => {
     const [isOpen, setIsOpen] = useState(true);
 
@@ -244,7 +222,7 @@ const TaskGroup = ({ title, count, tasks, color = "text-foreground" }: {
             {isOpen && (
                 <div>
                     {tasks.map((task) => (
-                        <TaskRow key={task.id} task={task} />
+                        <TaskRow key={task.id} task={task} onTaskUpdate={onTaskUpdate} onTaskClick={onTaskClick} />
                     ))}
                 </div>
             )}
@@ -254,14 +232,46 @@ const TaskGroup = ({ title, count, tasks, color = "text-foreground" }: {
 
 export const UserTasks = () => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [tasks, setTasks] = useState<Task[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
-    const filteredTasks = testTasks.filter(task => {
+    useEffect(() => {
+        loadTasks();
+    }, []);
+
+    const loadTasks = async () => {
+        try {
+            const data = await taskService.getAllTasks();
+            setTasks(data);
+        } catch (error) {
+            console.error('Error loading tasks:', error);
+            toast.error('Failed to load tasks');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleTaskUpdate = () => {
+        loadTasks();
+        setSelectedTask(null);
+    };
+
+    const filteredTasks = tasks.filter(task => {
         const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            task.description.toLowerCase().includes(searchTerm.toLowerCase());
+            (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase()));
         return matchesSearch;
     });
 
     const categorizedTasks = categorizeTasksByDate(filteredTasks);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-96">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -272,10 +282,6 @@ export const UserTasks = () => {
                         Manage and track your assigned tasks
                     </p>
                 </div>
-                <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    New Item
-                </Button>
             </div>
 
             {/* Search Bar */}
@@ -283,7 +289,7 @@ export const UserTasks = () => {
                 <div className="relative flex-1 max-w-md">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search"
+                        placeholder="Search tasks..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-8"
@@ -292,37 +298,71 @@ export const UserTasks = () => {
             </div>
 
             {/* Task Groups */}
-            <div className="space-y-4">
-                <TaskGroup
-                    title="Past Dates"
-                    count={categorizedTasks.pastDates.length}
-                    tasks={categorizedTasks.pastDates}
-                    color="text-red-600"
+            {tasks.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                    <Clipboard className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No tasks assigned to you yet.</p>
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    <TaskGroup
+                        title="Past Dates"
+                        count={categorizedTasks.pastDates.length}
+                        tasks={categorizedTasks.pastDates}
+                        color="text-red-600"
+                        onTaskUpdate={handleTaskUpdate}
+                        onTaskClick={setSelectedTask}
+                    />
+                    <TaskGroup
+                        title="Today"
+                        count={categorizedTasks.today.length}
+                        tasks={categorizedTasks.today}
+                        onTaskUpdate={handleTaskUpdate}
+                        onTaskClick={setSelectedTask}
+                    />
+                    <TaskGroup
+                        title="This week"
+                        count={categorizedTasks.thisWeek.length}
+                        tasks={categorizedTasks.thisWeek}
+                        color="text-blue-600"
+                        onTaskUpdate={handleTaskUpdate}
+                        onTaskClick={setSelectedTask}
+                    />
+                    <TaskGroup
+                        title="Next week"
+                        count={categorizedTasks.nextWeek.length}
+                        tasks={categorizedTasks.nextWeek}
+                        color="text-cyan-600"
+                        onTaskUpdate={handleTaskUpdate}
+                        onTaskClick={setSelectedTask}
+                    />
+                    <TaskGroup
+                        title="Later"
+                        count={categorizedTasks.later.length}
+                        tasks={categorizedTasks.later}
+                        color="text-yellow-600"
+                        onTaskUpdate={handleTaskUpdate}
+                        onTaskClick={setSelectedTask}
+                    />
+                    <TaskGroup
+                        title="No Due Date"
+                        count={categorizedTasks.noDueDate.length}
+                        tasks={categorizedTasks.noDueDate}
+                        color="text-gray-600"
+                        onTaskUpdate={handleTaskUpdate}
+                        onTaskClick={setSelectedTask}
+                    />
+                </div>
+            )}
+
+            {selectedTask && (
+                <EditTaskDialog
+                    open={!!selectedTask}
+                    onOpenChange={(open: boolean) => !open && setSelectedTask(null)}
+                    task={selectedTask}
+                    onSuccess={handleTaskUpdate}
                 />
-                <TaskGroup
-                    title="Today"
-                    count={categorizedTasks.today.length}
-                    tasks={categorizedTasks.today}
-                />
-                <TaskGroup
-                    title="This week"
-                    count={categorizedTasks.thisWeek.length}
-                    tasks={categorizedTasks.thisWeek}
-                    color="text-blue-600"
-                />
-                <TaskGroup
-                    title="Next week"
-                    count={categorizedTasks.nextWeek.length}
-                    tasks={categorizedTasks.nextWeek}
-                    color="text-cyan-600"
-                />
-                <TaskGroup
-                    title="Later"
-                    count={categorizedTasks.later.length}
-                    tasks={categorizedTasks.later}
-                    color="text-yellow-600"
-                />
-            </div>
+            )}
         </div>
     );
 };

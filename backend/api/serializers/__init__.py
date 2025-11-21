@@ -12,6 +12,11 @@ from .task_serializers import (
     TaskSerializer,
     TaskCreateUpdateSerializer
 )
+from .comment_serializers import (
+    CommentSerializer,
+    NotificationSerializer,
+    ActivityLogSerializer
+)
 
 __all__ = [
     'UserSerializer',
@@ -22,4 +27,7 @@ __all__ = [
     'ProjectCreateUpdateSerializer',
     'TaskSerializer',
     'TaskCreateUpdateSerializer',
+    'CommentSerializer',
+    'NotificationSerializer',
+    'ActivityLogSerializer',
 ]

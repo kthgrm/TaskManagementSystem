@@ -9,15 +9,12 @@ import {
   ClipboardList,
   UsersRound,
   FileText,
-  icons,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
-import { ProjectSwitcher } from "@/components/project-switcher"
 import {
   Sidebar,
   SidebarContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
@@ -25,6 +22,7 @@ import { NavUser } from "./nav-user"
 import { useAuth } from "@/contexts/AuthContext"
 import { NavHead } from "./nav-head"
 import { NavProjects } from "./nav-projects"
+import { projectService, type Project } from "@/api/project.service"
 
 // Admin navigation items - full system access
 const adminNavItems = [
@@ -40,23 +38,40 @@ const adminNavItems = [
 const userNavItems = [
   { title: "Home", icon: LayoutDashboard, url: "/user/dashboard" },
   { title: "My Tasks", icon: ListChecks, url: "/user/tasks" },
-]
-
-// Sample projects - can be fetched from API based on user
-const sampleProjects = [
-  { title: "Authentication System", url: "/project/1" },
-  { title: "UI Redesign", url: "/project/2" },
-  { title: "Payment Gateway", url: "/project/3" },
+  { title: "My Projects", icon: FolderKanban, url: "/user/projects" },
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth();
+  const [projects, setProjects] = React.useState<Project[]>([]);
 
   // Determine navigation items based on user role
   const navItems = React.useMemo(() => {
     if (!user?.role) return userNavItems;
     return user.role === 'admin' ? adminNavItems : userNavItems;
   }, [user?.role]);
+
+  // Fetch user's projects for sidebar
+  React.useEffect(() => {
+    if (user?.role === 'user') {
+      loadProjects();
+    }
+  }, [user]);
+
+  const loadProjects = async () => {
+    try {
+      const data = await projectService.getAllProjects();
+      // Get up to 3 recent projects
+      setProjects(data.slice(0, 3));
+    } catch (error) {
+      console.error('Error loading projects:', error);
+    }
+  };
+
+  const projectItems = projects.map(p => ({
+    title: p.title,
+    url: `/user/projects/${p.id}`,
+  }));
 
   return (
     <Sidebar className="border-r-0" {...props}>
@@ -65,7 +80,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navItems} />
-        {user?.role === 'user' && <NavProjects items={sampleProjects} />}
+        {user?.role === 'user' && projects.length > 0 && <NavProjects items={projectItems} />}
         <NavUser user={user} />
       </SidebarContent>
       <SidebarRail />

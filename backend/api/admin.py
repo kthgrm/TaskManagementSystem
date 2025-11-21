@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from api.models import User, Project, Task
+from api.models import User, Project, Task, Comment, Notification, ActivityLog
 
 
 @admin.register(User)
@@ -65,3 +65,66 @@ class TaskAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+    list_display = ['id', 'user', 'task', 'content_preview', 'parent', 'created_at', 'is_edited']
+    list_filter = ['is_edited', 'created_at']
+    search_fields = ['content', 'user__username', 'task__title']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('Comment Details', {
+            'fields': ('task', 'user', 'content', 'parent')
+        }),
+        ('Metadata', {
+            'fields': ('is_edited', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def content_preview(self, obj):
+        return obj.content[:50] + '...' if len(obj.content) > 50 else obj.content
+    content_preview.short_description = 'Content'
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ['id', 'recipient', 'sender', 'notification_type', 'is_read', 'created_at']
+    list_filter = ['notification_type', 'is_read', 'created_at']
+    search_fields = ['recipient__username', 'sender__username', 'message']
+    readonly_fields = ['created_at']
+    
+    fieldsets = (
+        ('Notification Details', {
+            'fields': ('recipient', 'sender', 'notification_type', 'message')
+        }),
+        ('Related Objects', {
+            'fields': ('task', 'comment')
+        }),
+        ('Status', {
+            'fields': ('is_read', 'created_at')
+        }),
+    )
+
+
+@admin.register(ActivityLog)
+class ActivityLogAdmin(admin.ModelAdmin):
+    list_display = ['id', 'user', 'action_type', 'task', 'project', 'created_at']
+    list_filter = ['action_type', 'created_at']
+    search_fields = ['user__username', 'description', 'task__title', 'project__name']
+    readonly_fields = ['created_at']
+    
+    fieldsets = (
+        ('Activity Details', {
+            'fields': ('user', 'action_type', 'description')
+        }),
+        ('Related Objects', {
+            'fields': ('task', 'project')
+        }),
+        ('Metadata', {
+            'fields': ('metadata', 'created_at')
+        }),
+    )
+

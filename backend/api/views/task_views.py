@@ -2,7 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from api.models import Task, Project
+from api.models import Task, Project, ActivityLog, Notification
 from api.serializers import TaskSerializer, TaskCreateUpdateSerializer
 
 
@@ -39,10 +39,13 @@ class TaskViewSet(viewsets.ModelViewSet):
 
         # Role-based filtering
         if user.role != 'admin':
-            # Show tasks from projects user is part of or tasks assigned to user
+            # Show tasks from projects user created, is a member of, or tasks assigned to user
+            from django.db.models import Q
             queryset = queryset.filter(
-                project__members=user
-            ) | queryset.filter(assigned_to=user)
+                Q(project__created_by=user) |
+                Q(project__members=user) |
+                Q(assigned_to=user)
+            )
 
         return queryset.distinct()
 
@@ -54,7 +57,84 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Set the creator when creating a task"""
-        serializer.save(created_by=self.request.user)
+        task = serializer.save(created_by=self.request.user)
+        
+        # Create activity log
+        ActivityLog.objects.create(
+            user=self.request.user,
+            action_type='created',
+            task=task,
+            project=task.project,
+            description=f"created task: {task.title}"
+        )
+        
+        # Notify assigned user if set
+        if task.assigned_to and task.assigned_to != self.request.user:
+            Notification.objects.create(
+                recipient=task.assigned_to,
+                sender=self.request.user,
+                notification_type='task_assigned',
+                task=task,
+                message=f"{self.request.user.get_full_name()} assigned you to task: {task.title}"
+            )
+    
+    def perform_update(self, serializer):
+        """Track task updates and status changes"""
+        old_task = self.get_object()
+        old_status = old_task.status
+        old_assigned_to = old_task.assigned_to
+        
+        task = serializer.save()
+        
+        # Create activity log for update
+        ActivityLog.objects.create(
+            user=self.request.user,
+            action_type='updated',
+            task=task,
+            project=task.project,
+            description=f"updated task: {task.title}"
+        )
+        
+        # Check for status change
+        if old_status != task.status:
+            ActivityLog.objects.create(
+                user=self.request.user,
+                action_type='status_changed',
+                task=task,
+                project=task.project,
+                description=f"changed status from {old_status} to {task.status}"
+            )
+            
+            # Notify assigned user of status change
+            if task.assigned_to and task.assigned_to != self.request.user:
+                Notification.objects.create(
+                    recipient=task.assigned_to,
+                    sender=self.request.user,
+                    notification_type='task_updated',
+                    task=task,
+                    message=f"{self.request.user.get_full_name()} changed task status to {task.status}: {task.title}"
+                )
+        
+        # Check for assignment change
+        if old_assigned_to != task.assigned_to:
+            if task.assigned_to:
+                ActivityLog.objects.create(
+                    user=self.request.user,
+                    action_type='assigned',
+                    task=task,
+                    project=task.project,
+                    description=f"assigned task to {task.assigned_to.get_full_name()}"
+                )
+                
+                # Notify new assignee
+                if task.assigned_to != self.request.user:
+                    Notification.objects.create(
+                        recipient=task.assigned_to,
+                        sender=self.request.user,
+                        notification_type='task_assigned',
+                        task=task,
+                        message=f"{self.request.user.get_full_name()} assigned you to task: {task.title}"
+                    )
 
     @action(detail=False, methods=['get'])
     def my_tasks(self, request):

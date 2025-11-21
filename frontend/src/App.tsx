@@ -7,9 +7,13 @@ import Profile from '@/pages/Profile';
 import { AdminDashboard } from '@/pages/admin/dashboard';
 import { UserDashboard } from '@/pages/user/dashboard';
 import { UserTasks } from '@/pages/user/tasks';
-import { UserProjects } from '@/pages/user/projects';
-import { ProjectDetail } from '@/pages/user/projects/detail';
+import UserProjectsPage from '@/pages/user/projects';
+import ProjectDetailPage from '@/pages/user/projects/detail';
+import ProjectSettingsPage from '@/pages/user/projects/settings';
 import UsersPage from '@/pages/admin/users';
+import CreateUserPage from '@/pages/admin/users/create';
+import ViewUserPage from '@/pages/admin/users/view';
+import EditUserPage from '@/pages/admin/users/edit';
 import ProjectsPage from '@/pages/admin/projects';
 import TasksPage from '@/pages/admin/tasks';
 import ReportsPage from '@/pages/admin/reports';
@@ -88,6 +92,30 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/admin/users/create"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <CreateUserPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/users/:userId"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <ViewUserPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/users/:userId/edit"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <EditUserPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/admin/projects"
         element={
           <ProtectedRoute allowedRoles={['admin']}>
@@ -141,17 +169,23 @@ function AppRoutes() {
         path="/user/projects"
         element={
           <ProtectedRoute allowedRoles={['user']}>
-            <UserProjects />
+            <UserProjectsPage />
           </ProtectedRoute>
         }
       />
-
-      {/* Project Routes */}
       <Route
-        path="/project/:projectId"
+        path="/user/projects/:projectId"
         element={
-          <ProtectedRoute>
-            <ProjectDetail />
+          <ProtectedRoute allowedRoles={['user']}>
+            <ProjectDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/user/projects/:projectId/settings"
+        element={
+          <ProtectedRoute allowedRoles={['user']}>
+            <ProjectSettingsPage />
           </ProtectedRoute>
         }
       />

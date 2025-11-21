@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 import { Loader2, Trash2 } from 'lucide-react';
 import { Comments } from '@/components/Comments';
 import { ActivityFeed } from '@/components/ActivityFeed';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface EditTaskDialogProps {
     open: boolean;
@@ -51,7 +52,17 @@ export function EditTaskDialog({ open, onOpenChange, task, onSuccess, defaultTab
     const loadProjectMembers = async () => {
         try {
             const project = await projectService.getProject(task.project);
-            setMembers(project.members_details || []);
+            const allMembers = [...(project.members_details || [])];
+
+            // Add project creator if not already in members list
+            if (project.created_by_details) {
+                const creatorExists = allMembers.some(m => m.id === project.created_by_details!.id);
+                if (!creatorExists) {
+                    allMembers.push(project.created_by_details);
+                }
+            }
+
+            setMembers(allMembers);
         } catch (error: any) {
             console.error('Error loading members:', error);
         }
@@ -118,132 +129,137 @@ export function EditTaskDialog({ open, onOpenChange, task, onSuccess, defaultTab
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
-                <DialogHeader>
-                    <DialogTitle>Edit Task</DialogTitle>
-                </DialogHeader>
-                <Tabs defaultValue={defaultTab} className="flex-1 overflow-hidden flex flex-col">
-                    <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="details">Details</TabsTrigger>
-                        <TabsTrigger value="comments">Comments</TabsTrigger>
-                        <TabsTrigger value="activity">Activity</TabsTrigger>
+        <Sheet open={open} onOpenChange={onOpenChange}>
+            <SheetContent className="w-full sm:max-w-[700px] overflow-hidden flex flex-col p-0">
+                <SheetHeader className="px-6 pt-6 pb-4 border-b">
+                    <SheetTitle>Edit Task</SheetTitle>
+                </SheetHeader>
+                <Tabs defaultValue={defaultTab} className="flex-1 overflow-hidden flex flex-col px-6">
+                    <TabsList className="w-full">
+                        <TabsTrigger value="details" className='data-[active=true]:bg-violet-800 data-[active=true]:text-white'>Details</TabsTrigger>
+                        <TabsTrigger value="comments" className='data-[active=true]:bg-violet-800 data-[active=true]:text-white'>Comments</TabsTrigger>
+                        <TabsTrigger value="activity" className='data-[active=true]:bg-violet-800 data-[active=true]:text-white'>Activity</TabsTrigger>
                     </TabsList>
                     <TabsContent value="details" className="flex-1 overflow-y-auto">
-                        <form onSubmit={handleSubmit}>
-                            <div className="grid gap-4 py-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="title">Title *</Label>
-                                    <Input
-                                        id="title"
-                                        value={formData.title}
-                                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                        required
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="description">Description</Label>
-                                    <Textarea
-                                        id="description"
-                                        value={formData.description}
-                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                        rows={3}
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="assigned_to">Assign To</Label>
-                                    <Select
-                                        value={formData.assigned_to}
-                                        onValueChange={(value) => setFormData({ ...formData, assigned_to: value })}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select member" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="unassigned">Unassigned</SelectItem>
-                                            {members.map((member) => (
-                                                <SelectItem key={member.id} value={member.id.toString()}>
-                                                    {member.first_name} {member.last_name} ({member.username})
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="priority">Priority</Label>
-                                        <Select
-                                            value={formData.priority}
-                                            onValueChange={(value: 'low' | 'medium' | 'high') => setFormData({ ...formData, priority: value })}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="low">Low</SelectItem>
-                                                <SelectItem value="medium">Medium</SelectItem>
-                                                <SelectItem value="high">High</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                        <Card>
+                            <CardContent>
+                                <form onSubmit={handleSubmit} className="h-full flex flex-col">
+                                    <div className="grid gap-4 py-4 flex-1">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="title">Title *</Label>
+                                            <Input
+                                                id="title"
+                                                value={formData.title}
+                                                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="description">Description</Label>
+                                            <Textarea
+                                                id="description"
+                                                value={formData.description}
+                                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                                rows={3}
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-4">
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="assigned_to">Assign To</Label>
+                                                <Select
+                                                    value={formData.assigned_to}
+                                                    onValueChange={(value) => setFormData({ ...formData, assigned_to: value })}
+                                                >
+                                                    <SelectTrigger className='w-full'>
+                                                        <SelectValue placeholder="Select member" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                                                        {members.map((member) => (
+                                                            <SelectItem key={member.id} value={member.id.toString()}>
+                                                                {member.first_name} {member.last_name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="priority">Priority</Label>
+                                                <Select
+                                                    value={formData.priority}
+                                                    onValueChange={(value: 'low' | 'medium' | 'high') => setFormData({ ...formData, priority: value })}
+                                                >
+                                                    <SelectTrigger className='w-full'>
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="low">Low</SelectItem>
+                                                        <SelectItem value="medium">Medium</SelectItem>
+                                                        <SelectItem value="high">High</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="status">Status</Label>
+                                                <Select
+                                                    value={formData.status}
+                                                    onValueChange={(value: 'todo' | 'in_progress' | 'completed') => setFormData({ ...formData, status: value })}
+                                                >
+                                                    <SelectTrigger className='w-full'>
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="todo">To Do</SelectItem>
+                                                        <SelectItem value="in_progress">In Progress</SelectItem>
+                                                        <SelectItem value="completed">Completed</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="due_date">Due Date</Label>
+                                            <Input
+                                                id="due_date"
+                                                type="date"
+                                                value={formData.due_date}
+                                                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="status">Status</Label>
-                                        <Select
-                                            value={formData.status}
-                                            onValueChange={(value: 'todo' | 'in_progress' | 'completed') => setFormData({ ...formData, status: value })}
+                                    <div className="flex justify-between border-t py-4">
+                                        <Button
+                                            type="button"
+                                            variant="destructive"
+                                            onClick={handleDelete}
+                                            disabled={deleting}
+                                            className='bg-red-800 hover:bg-red-700'
                                         >
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="todo">To Do</SelectItem>
-                                                <SelectItem value="in_progress">In Progress</SelectItem>
-                                                <SelectItem value="completed">Completed</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                            {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Delete
+                                        </Button>
+                                        <div className="flex gap-2">
+                                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                                                Cancel
+                                            </Button>
+                                            <Button type="submit" disabled={loading} className='bg-violet-800 hover:bg-violet-700'>
+                                                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                Save Changes
+                                            </Button>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="due_date">Due Date</Label>
-                                    <Input
-                                        id="due_date"
-                                        type="date"
-                                        value={formData.due_date}
-                                        onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-                            <DialogFooter className="flex justify-between sm:justify-between">
-                                <Button
-                                    type="button"
-                                    variant="destructive"
-                                    onClick={handleDelete}
-                                    disabled={deleting}
-                                >
-                                    {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete
-                                </Button>
-                                <div className="flex gap-2">
-                                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                                        Cancel
-                                    </Button>
-                                    <Button type="submit" disabled={loading}>
-                                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        Save Changes
-                                    </Button>
-                                </div>
-                            </DialogFooter>
-                        </form>
+                                </form>
+                            </CardContent>
+                        </Card>
                     </TabsContent>
-                    <TabsContent value="comments" className="mt-4">
+                    <TabsContent value="comments" className="flex-1 overflow-y-auto">
                         <Comments taskId={task.id} />
                     </TabsContent>
-                    <TabsContent value="activity" className="mt-4">
+                    <TabsContent value="activity" className="flex-1 overflow-y-auto">
                         <ActivityFeed taskId={task.id} />
                     </TabsContent>
                 </Tabs>
-            </DialogContent>
-        </Dialog>
+            </SheetContent>
+        </Sheet>
     );
 }

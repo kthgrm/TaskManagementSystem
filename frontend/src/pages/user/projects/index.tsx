@@ -2,14 +2,16 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { Loader2, Plus, Calendar, Users, ListChecks } from 'lucide-react';
 import { projectService, type Project } from '@/api/project.service';
 import toast from 'react-hot-toast';
 import { CreateProjectDialog } from './components/CreateProjectDialog';
+import { useProjectRefresh } from '@/contexts/ProjectContext';
 
 export default function ProjectsPage() {
     const navigate = useNavigate();
+    const { triggerProjectRefresh } = useProjectRefresh();
     const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -33,24 +35,8 @@ export default function ProjectsPage() {
 
     const handleCreateProject = () => {
         loadProjects();
+        triggerProjectRefresh(); // Refresh sidebar projects
         setShowCreateDialog(false);
-    };
-
-    const getStatusVariant = (status: string) => {
-        switch (status) {
-            case 'completed':
-                return 'default';
-            case 'in_progress':
-                return 'secondary';
-            case 'on_hold':
-                return 'outline';
-            default:
-                return 'secondary';
-        }
-    };
-
-    const getStatusLabel = (status: string) => {
-        return status.replace('_', ' ').toUpperCase();
     };
 
     if (loading) {
@@ -101,9 +87,6 @@ export default function ProjectsPage() {
                             <CardHeader>
                                 <div className="flex items-start justify-between">
                                     <CardTitle className="line-clamp-1">{project.title}</CardTitle>
-                                    <Badge variant={getStatusVariant(project.status)}>
-                                        {getStatusLabel(project.status)}
-                                    </Badge>
                                 </div>
                                 <CardDescription className="line-clamp-2">
                                     {project.description || 'No description'}
@@ -115,6 +98,16 @@ export default function ProjectsPage() {
                                         <ListChecks className="mr-2 h-4 w-4" />
                                         {project.task_count} {project.task_count === 1 ? 'task' : 'tasks'}
                                     </div>
+
+                                    {/* Progress Bar */}
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-muted-foreground">Progress</span>
+                                            <span className="font-medium">{project.completion_percentage}%</span>
+                                        </div>
+                                        <Progress value={project.completion_percentage} className="h-2" />
+                                    </div>
+
                                     <div className="flex items-center text-sm text-muted-foreground">
                                         <Users className="mr-2 h-4 w-4" />
                                         {project.members_details.length} {project.members_details.length === 1 ? 'member' : 'members'}

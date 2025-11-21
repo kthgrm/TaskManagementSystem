@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { DataTable } from '@/components/data-table';
+import { DataTable, SortableHeader } from '@/components/data-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Plus, Edit, Trash2, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { MoreHorizontal, Plus, Edit, Trash2, Loader2, ListTodo, Clock, CheckCircle2 } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -12,18 +13,14 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { taskService, type Task } from '@/api/task.service';
-import { projectService } from '@/api/project.service';
 import toast from 'react-hot-toast';
 import { CreateTaskDialog } from './components/CreateTaskDialog';
 import { EditTaskDialog } from './components/EditTaskDialog';
 
-
-
 export default function TasksPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
-    const [projects, setProjects] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [createDialogOpen, setCreateDialogOpen] = useState(false);
     const [editTask, setEditTask] = useState<Task | null>(null);
@@ -34,12 +31,8 @@ export default function TasksPage() {
 
     const loadData = async () => {
         try {
-            const [tasksData, projectsData] = await Promise.all([
-                taskService.getAllTasks(),
-                projectService.getAllProjects(),
-            ]);
+            const tasksData = await taskService.getAllTasks();
             setTasks(tasksData);
-            setProjects(projectsData);
         } catch (error) {
             console.error('Error loading data:', error);
             toast.error('Failed to load data');
@@ -63,15 +56,10 @@ export default function TasksPage() {
         }
     };
 
-    const getProjectName = (projectId: number) => {
-        const project = projects.find(p => p.id === projectId);
-        return project?.name || 'Unknown';
-    };
-
     const columns: ColumnDef<Task>[] = [
         {
             accessorKey: 'title',
-            header: 'Task',
+            header: ({ column }) => <SortableHeader column={column}>Task</SortableHeader>,
             cell: ({ row }) => {
                 return (
                     <div className="max-w-[300px]">
@@ -85,12 +73,12 @@ export default function TasksPage() {
         },
         {
             accessorKey: 'project',
-            header: 'Project',
-            cell: ({ row }) => getProjectName(row.original.project),
+            header: ({ column }) => <SortableHeader column={column}>Project</SortableHeader>,
+            cell: ({ row }) => row.original.project_name || 'Unknown',
         },
         {
             accessorKey: 'assigned_to',
-            header: 'Assigned To',
+            header: ({ column }) => <SortableHeader column={column}>Assigned To</SortableHeader>,
             cell: ({ row }) => {
                 const assignee = row.original.assigned_to_details;
                 if (!assignee) return 'Unassigned';
@@ -107,7 +95,7 @@ export default function TasksPage() {
         },
         {
             accessorKey: 'status',
-            header: 'Status',
+            header: ({ column }) => <SortableHeader column={column}>Status</SortableHeader>,
             cell: ({ row }) => {
                 const status = row.getValue('status') as string;
                 const config: Record<string, { className: string; label: string }> = {
@@ -125,7 +113,7 @@ export default function TasksPage() {
         },
         {
             accessorKey: 'priority',
-            header: 'Priority',
+            header: ({ column }) => <SortableHeader column={column}>Priority</SortableHeader>,
             cell: ({ row }) => {
                 const priority = row.getValue('priority') as string;
                 const variants: Record<string, string> = {
@@ -142,7 +130,7 @@ export default function TasksPage() {
         },
         {
             accessorKey: 'due_date',
-            header: 'Due Date',
+            header: ({ column }) => <SortableHeader column={column}>Due Date</SortableHeader>,
             cell: ({ row }) => {
                 const date = row.getValue('due_date') as string;
                 return date ? new Date(date).toLocaleDateString() : 'No date';
@@ -150,6 +138,7 @@ export default function TasksPage() {
         },
         {
             id: 'actions',
+            header: 'Actions',
             cell: ({ row }) => {
                 const task = row.original;
                 return (
@@ -192,17 +181,81 @@ export default function TasksPage() {
 
     return (
         <div className="space-y-6">
+            {/* Header Section */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
-                    <p className="text-muted-foreground">Manage all tasks across projects</p>
+                    <h1 className="text-3xl font-bold tracking-tight bg-linear-to-r from-violet-800 to-violet-600 bg-clip-text text-transparent">Tasks Management</h1>
+                    <p className="text-muted-foreground mt-1">Manage and monitor all tasks across projects</p>
                 </div>
-                <Button onClick={() => setCreateDialogOpen(true)}>
+                <Button
+                    onClick={() => setCreateDialogOpen(true)}
+                    className="bg-violet-800 hover:bg-violet-900 text-white shadow-md hover:shadow-lg transition-all"
+                >
                     <Plus className="mr-2 h-4 w-4" />
                     New Task
                 </Button>
             </div>
-            <DataTable columns={columns} data={tasks} />
+
+            {/* Stats Overview */}
+            <div className="grid gap-4 md:grid-cols-3">
+                <Card className="border-l-4 border-l-violet-800 hover:shadow-md transition-shadow">
+                    <CardContent>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-muted-foreground mb-1">Total Tasks</p>
+                                <p className="text-3xl font-bold text-violet-800">{tasks.length}</p>
+                            </div>
+                            <div className="h-12 w-12 rounded-lg bg-violet-100 flex items-center justify-center">
+                                <ListTodo className="h-6 w-6 text-violet-800" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="border-l-4 border-l-yellow-500 hover:shadow-md transition-shadow">
+                    <CardContent>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-muted-foreground mb-1">In Progress</p>
+                                <p className="text-3xl font-bold text-yellow-600">{tasks.filter(t => t.status === 'in_progress').length}</p>
+                            </div>
+                            <div className="h-12 w-12 rounded-lg bg-yellow-100 flex items-center justify-center">
+                                <Clock className="h-6 w-6 text-yellow-600" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="border-l-4 border-l-green-500 hover:shadow-md transition-shadow">
+                    <CardContent>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-muted-foreground mb-1">Completed</p>
+                                <p className="text-3xl font-bold text-green-600">{tasks.filter(t => t.status === 'completed').length}</p>
+                            </div>
+                            <div className="h-12 w-12 rounded-lg bg-green-100 flex items-center justify-center">
+                                <CheckCircle2 className="h-6 w-6 text-green-600" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Data Table */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-violet-800">All Tasks</CardTitle>
+                    <CardDescription>View and manage task details, assignments, and progress</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <DataTable
+                        columns={columns}
+                        data={tasks}
+                        searchKey="title"
+                        searchPlaceholder="Search tasks by title..."
+                    />
+                </CardContent>
+            </Card>
 
             <CreateTaskDialog
                 open={createDialogOpen}

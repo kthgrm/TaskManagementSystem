@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { User, Mail, Phone, FileText, Camera, Save, Lock, LogOut, Loader2, Trash2 } from 'lucide-react';
+import { User, Mail, Phone, Camera, Save, Lock, Loader2, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getMediaUrl } from '@/lib/utils';
 
 export default function Profile() {
     const navigate = useNavigate();
@@ -20,8 +21,7 @@ export default function Profile() {
         first_name: '',
         last_name: '',
         email: '',
-        bio: '',
-        phone_number: '',
+        phone: '',
     });
 
     const [passwordData, setPasswordData] = useState({
@@ -44,12 +44,11 @@ export default function Profile() {
                 first_name: user.first_name || '',
                 last_name: user.last_name || '',
                 email: user.email || '',
-                bio: user.profile?.bio || '',
-                phone_number: user.profile?.phone_number || '',
+                phone: user.phone || '',
             });
 
-            if (user.profile?.profile_picture) {
-                setPreviewImage(user.profile.profile_picture);
+            if (user.profile_picture) {
+                setPreviewImage(getMediaUrl(user.profile_picture));
             }
         }
     }, [user, isAuthenticated, navigate]);
@@ -139,11 +138,6 @@ export default function Profile() {
         }
     };
 
-    const handleLogout = async () => {
-        await logout();
-        navigate('/login');
-    };
-
     const handleDeleteAccount = async () => {
         if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
             try {
@@ -166,7 +160,7 @@ export default function Profile() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 py-8">
+        <div className="min-h-screen">
             <div className="max-w-4xl mx-auto space-y-6">
                 {/* Header */}
                 <div className="flex items-center justify-between">
@@ -266,13 +260,13 @@ export default function Profile() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="phone_number">Phone Number</Label>
+                                <Label htmlFor="phone">Phone Number</Label>
                                 <div className="relative">
                                     <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                                     <Input
-                                        id="phone_number"
-                                        name="phone_number"
-                                        value={profileData.phone_number}
+                                        id="phone"
+                                        name="phone"
+                                        value={profileData.phone}
                                         onChange={handleProfileChange}
                                         className="pl-10"
                                         placeholder="+1234567890"
@@ -280,22 +274,7 @@ export default function Profile() {
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="bio">Bio</Label>
-                                <div className="relative">
-                                    <FileText className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <textarea
-                                        id="bio"
-                                        name="bio"
-                                        value={profileData.bio}
-                                        onChange={handleProfileChange}
-                                        className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 pl-10 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                        placeholder="Tell us about yourself..."
-                                    />
-                                </div>
-                            </div>
-
-                            <Button type="submit" disabled={isLoading} className="w-full">
+                            <Button type="submit" disabled={isLoading} className="w-full bg-violet-800 hover:bg-violet-700">
                                 {isLoading ? (
                                     <>
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />

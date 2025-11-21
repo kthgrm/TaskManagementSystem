@@ -28,7 +28,8 @@ class TaskSerializer(serializers.ModelSerializer):
                 'username': obj.assigned_to.username,
                 'email': obj.assigned_to.email,
                 'first_name': obj.assigned_to.first_name,
-                'last_name': obj.assigned_to.last_name
+                'last_name': obj.assigned_to.last_name,
+                'profile_picture': obj.assigned_to.profile_picture.url if obj.assigned_to.profile_picture else None
             }
         return None
 

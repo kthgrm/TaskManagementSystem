@@ -29,8 +29,10 @@ class CommentViewSet(viewsets.ModelViewSet):
         if task_id:
             queryset = queryset.filter(task_id=task_id)
         
-        # Only return top-level comments (replies are nested in serializer)
-        queryset = queryset.filter(parent__isnull=True)
+        # Only return top-level comments for list action (replies are nested in serializer)
+        # Don't apply this filter for detail actions (retrieve, update, destroy)
+        if self.action == 'list':
+            queryset = queryset.filter(parent__isnull=True)
         
         return queryset.select_related('user', 'task').prefetch_related('replies__user')
 

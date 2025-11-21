@@ -89,13 +89,13 @@ export function NotificationBell() {
                 const { taskService } = await import('@/api/task.service');
                 const task = await taskService.getTask(notification.task);
 
-                // Navigate to user's project detail page with the task
-                navigate(`/user/projects/${task.project}`);
+                // Determine which tab to open based on notification type
+                const tab = notification.notification_type === 'comment' || notification.notification_type === 'mention'
+                    ? 'comments'
+                    : 'details';
 
-                // Small delay to ensure page loads before showing message
-                setTimeout(() => {
-                    toast.success(`Navigated to: ${task.title}`);
-                }, 300);
+                // Navigate to user's project detail page with task and tab parameters
+                navigate(`/user/projects/${task.project}?taskId=${task.id}&tab=${tab}`);
             } catch (error) {
                 console.error('Error navigating to task:', error);
                 toast.error('Failed to navigate to task');

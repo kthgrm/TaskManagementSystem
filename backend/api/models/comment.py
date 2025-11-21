@@ -48,7 +48,7 @@ class Notification(models.Model):
     sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sent_notifications', null=True, blank=True)
     notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
     task = models.ForeignKey(Task, on_delete=models.CASCADE, null=True, blank=True)
-    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, null=True, blank=True)
+    comment = models.ForeignKey(Comment, on_delete=models.SET_NULL, null=True, blank=True)
     message = models.TextField()
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

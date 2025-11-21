@@ -18,9 +18,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         if user.role == 'admin':
             return Project.objects.all()
         # Return projects created by user or where user is a member
-        return Project.objects.filter(
-            created_by=user
-        ) | Project.objects.filter(members=user)
+        return  Project.objects.filter(members=user)
 
     def get_serializer_class(self):
         """Use different serializers for different actions"""
@@ -30,9 +28,24 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Set the creator when creating a project"""
-        project = serializer.save(created_by=self.request.user)
-        # Add creator as a member automatically
-        project.members.add(self.request.user)
+        # Allow admin to specify created_by, otherwise use request.user
+        created_by = serializer.validated_data.get('created_by', self.request.user)
+        project = serializer.save(created_by=created_by)
+        # Add creator as a member automatically if not already in members
+        if created_by not in project.members.all():
+            project.members.add(created_by)
+
+    def perform_update(self, serializer):
+        """Update project and handle created_by change"""
+        # If created_by is being changed, update the members list
+        old_creator = serializer.instance.created_by
+        new_creator = serializer.validated_data.get('created_by', old_creator)
+        
+        project = serializer.save()
+        
+        # Add new creator to members if not already there
+        if new_creator and new_creator not in project.members.all():
+            project.members.add(new_creator)
 
     @action(detail=True, methods=['post'])
     def add_member(self, request, pk=None):

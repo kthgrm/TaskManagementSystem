@@ -12,9 +12,10 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, UserPlus, User } from 'lucide-react';
 import { userService, type CreateUserData } from '@/api/user.service';
 import toast from 'react-hot-toast';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function CreateUserPage() {
     const navigate = useNavigate();
@@ -22,6 +23,7 @@ export default function CreateUserPage() {
     const [role, setRole] = useState<'admin' | 'user'>('user');
     const [profilePicture, setProfilePicture] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string>('');
+    const [isActive, setIsActive] = useState(true);
 
     const {
         register,
@@ -62,7 +64,7 @@ export default function CreateUserPage() {
             if (data.phone) formData.append('phone', data.phone);
             if (profilePicture) formData.append('profile_picture', profilePicture);
 
-            await userService.createUser(formData as any);
+            await userService.createUser(formData);
             toast.success('User created successfully');
             navigate('/admin/users');
         } catch (error: any) {
@@ -84,23 +86,25 @@ export default function CreateUserPage() {
 
     return (
         <div className="space-y-6">
+            {/* Header Section */}
             <div className="flex items-center gap-4">
                 <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => navigate('/admin/users')}
+                    className="hover:bg-violet-100"
                 >
-                    <ArrowLeft className="h-4 w-4" />
+                    <ArrowLeft className="h-5 w-5" />
                 </Button>
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Add New User</h1>
-                    <p className="text-muted-foreground">Create a new user account with their details</p>
+                    <h1 className="text-3xl font-bold tracking-tight bg-linear-to-r from-violet-800 to-violet-600 bg-clip-text text-transparent">Add New User</h1>
+                    <p className="text-muted-foreground mt-1">Create a new user account with their details and permissions</p>
                 </div>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>User Information</CardTitle>
+            <Card className="border-t-4 border-t-violet-800 shadow-lg pt-0 max-w-3xl mx-auto">
+                <CardHeader className="bg-linear-to-r from-violet-50 to-transparent border-b pt-6 rounded-xl">
+                    <CardTitle className="text-xl text-violet-800">User Information</CardTitle>
                     <CardDescription>
                         Fill in the details below to create a new user account
                     </CardDescription>
@@ -175,23 +179,27 @@ export default function CreateUserPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="profile_picture">Profile Picture</Label>
-                            <Input
-                                id="profile_picture"
-                                type="file"
-                                accept="image/*"
-                                onChange={handleFileChange}
-                                disabled={isLoading}
-                            />
-                            {previewUrl && (
-                                <div className="mt-2">
-                                    <img
+                            <Label htmlFor="profile_picture" className="text-base font-semibold">Profile Picture</Label>
+                            <div className="flex items-center gap-4 mt-2 p-4 border-2 border-dashed border-gray-200 rounded-lg hover:border-violet-300 transition-colors">
+                                <Avatar className="h-20 w-20 border-4 border-violet-100">
+                                    <AvatarImage
                                         src={previewUrl}
-                                        alt="Profile preview"
-                                        className="w-24 h-24 rounded-full object-cover"
+                                    />
+                                    <AvatarFallback className="text-xl bg-violet-100 text-violet-800">
+                                        <User />
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1">
+                                    <Input
+                                        id="profile_picture"
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleFileChange}
+                                        disabled={isLoading}
+                                        className="cursor-pointer"
                                     />
                                 </div>
-                            )}
+                            </div>
                         </div>
 
                         <div className="space-y-2">
@@ -203,6 +211,22 @@ export default function CreateUserPage() {
                                 <SelectContent>
                                     <SelectItem value="user">User</SelectItem>
                                     <SelectItem value="admin">Admin</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="status">Status</Label>
+                            <Select
+                                value={isActive ? 'active' : 'inactive'}
+                                onValueChange={(value) => setIsActive(value === 'active')}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="active">Active</SelectItem>
+                                    <SelectItem value="inactive">Inactive</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -247,23 +271,31 @@ export default function CreateUserPage() {
                             </div>
                         </div>
 
-                        <div className="flex gap-4 justify-end pt-4 border-t">
+                        <div className="flex gap-4 justify-end pt-6 border-t mt-6">
                             <Button
                                 type="button"
                                 variant="outline"
                                 onClick={() => navigate('/admin/users')}
                                 disabled={isLoading}
+                                className="border-gray-300 hover:bg-gray-50"
                             >
                                 Cancel
                             </Button>
-                            <Button type="submit" disabled={isLoading}>
+                            <Button
+                                type="submit"
+                                disabled={isLoading}
+                                className="bg-violet-800 hover:bg-violet-900 text-white shadow-md hover:shadow-lg transition-all"
+                            >
                                 {isLoading ? (
                                     <>
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Creating...
+                                        Creating User...
                                     </>
                                 ) : (
-                                    'Create User'
+                                    <>
+                                        <UserPlus className="mr-2 h-4 w-4" />
+                                        Create User
+                                    </>
                                 )}
                             </Button>
                         </div>

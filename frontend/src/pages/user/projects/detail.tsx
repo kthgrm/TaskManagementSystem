@@ -1,27 +1,32 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
-import { Loader2, Plus, Search, User, Filter, SortAsc, LayoutGrid, X, ArrowUpDown, Settings, List, Grid2X2 } from 'lucide-react';
+import { Loader2, Plus, Search, User, Filter, SortAsc, LayoutGrid, X, ArrowUpDown, Settings, List, Grid2X2, Flag, Calendar } from 'lucide-react';
 import { projectService, type Project } from '@/api/project.service';
 import { taskService, type Task } from '@/api/task.service';
 import toast from 'react-hot-toast';
 import { BoardView } from './components/BoardView';
 import { ListView } from './components/ListView';
 import { CreateTaskDialog } from './components/CreateTaskDialog';
+import { EditTaskDialog } from './components/EditTaskDialog';
 import { useAuth } from '@/contexts/AuthContext';
+import { Progress } from '@/components/ui/progress';
 
 export default function ProjectDetailPage() {
     const { projectId } = useParams<{ projectId: string }>();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const { user } = useAuth();
     const [project, setProject] = useState<Project | null>(null);
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('main-table');
     const [showCreateTask, setShowCreateTask] = useState(false);
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+    const [taskDialogTab, setTaskDialogTab] = useState<'details' | 'comments' | 'activity'>('details');
 
     // Toolbar states
     const [searchQuery, setSearchQuery] = useState('');
@@ -29,7 +34,8 @@ export default function ProjectDetailPage() {
     const [filterPerson, setFilterPerson] = useState<string>('all');
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [filterPriority, setFilterPriority] = useState<string>('all');
-    const [sortBy, setSortBy] = useState<'title' | 'due_date' | 'priority' | 'status'>('title');
+    const [filterDeadline, setFilterDeadline] = useState<string>('all');
+    const [sortBy, setSortBy] = useState<'title' | 'due_date' | 'priority' | 'status'>('due_date');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const [groupBy, setGroupBy] = useState<'none' | 'status' | 'priority' | 'assignee'>('none');
 
@@ -39,6 +45,22 @@ export default function ProjectDetailPage() {
             loadTasks();
         }
     }, [projectId]);
+
+    // Handle URL parameters to open task dialog from notifications
+    useEffect(() => {
+        const taskId = searchParams.get('taskId');
+        const tab = searchParams.get('tab') as 'details' | 'comments' | 'activity' | null;
+
+        if (taskId && tasks.length > 0) {
+            const task = tasks.find(t => t.id === parseInt(taskId));
+            if (task) {
+                setSelectedTask(task);
+                setTaskDialogTab(tab || 'details');
+                // Clear URL parameters after opening dialog
+                setSearchParams({});
+            }
+        }
+    }, [searchParams, tasks, setSearchParams]);
 
     const loadProject = async () => {
         if (!projectId) return;
@@ -119,6 +141,33 @@ export default function ProjectDetailPage() {
             result = result.filter(task => task.priority === filterPriority);
         }
 
+        // Apply deadline filter
+        if (filterDeadline !== 'all') {
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const weekFromNow = new Date(today);
+            weekFromNow.setDate(weekFromNow.getDate() + 7);
+
+            result = result.filter(task => {
+                if (!task.due_date) return false;
+                const dueDate = new Date(task.due_date);
+                const dueDateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+
+                switch (filterDeadline) {
+                    case 'overdue':
+                        return dueDateOnly < today && task.status !== 'completed';
+                    case 'today':
+                        return dueDateOnly.getTime() === today.getTime();
+                    case 'this_week':
+                        return dueDateOnly >= today && dueDateOnly < weekFromNow;
+                    default:
+                        return true;
+                }
+            });
+        }
+
         // Apply sorting
         result.sort((a, b) => {
             let comparison = 0;
@@ -146,15 +195,16 @@ export default function ProjectDetailPage() {
         });
 
         return result;
-    }, [tasks, searchQuery, filterPerson, filterStatus, filterPriority, sortBy, sortOrder]);
+    }, [tasks, searchQuery, filterPerson, filterStatus, filterPriority, filterDeadline, sortBy, sortOrder]);
 
-    const hasActiveFilters = searchQuery || filterPerson !== 'all' || filterStatus !== 'all' || filterPriority !== 'all';
+    const hasActiveFilters = searchQuery || filterPerson !== 'all' || filterStatus !== 'all' || filterPriority !== 'all' || filterDeadline !== 'all';
 
     const clearFilters = () => {
         setSearchQuery('');
         setFilterPerson('all');
         setFilterStatus('all');
         setFilterPriority('all');
+        setFilterDeadline('all');
     };
 
     if (loading) {
@@ -175,10 +225,19 @@ export default function ProjectDetailPage() {
             <div className="border-b border-gray-700/50">
                 <div className="pb-4">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                            <h1 className="text-2xl font-semibold flex items-center gap-2">
-                                {project.title}
-                            </h1>
+                        <div className="flex items-center gap-3 flex-1">
+                            <div className="flex-1">
+                                <h1 className="text-2xl font-semibold flex items-center gap-2 mb-2">
+                                    {project.title}
+                                </h1>
+                                {/* Progress Bar */}
+                                <div className="flex items-center gap-3 max-w-md">
+                                    <Progress value={project.completion_percentage} className="h-2 flex-1" />
+                                    <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                                        {project.completion_percentage}% complete
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                         <div className="flex items-center gap-2">
                             {user && project.created_by === user.id && (
@@ -271,12 +330,12 @@ export default function ProjectDetailPage() {
                             </SelectContent>
                         </Select>
 
-                        {/* Filter Dropdown */}
+                        {/* Status Filter */}
                         <div className="relative">
                             <Select value={filterStatus} onValueChange={setFilterStatus}>
                                 <SelectTrigger className="w-auto h-8 bg-transparent">
                                     <Filter className="h-4 w-4 mr-2" />
-                                    <span className="text-sm">Filter</span>
+                                    <span className="text-sm">Status</span>
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All Status</SelectItem>
@@ -286,6 +345,34 @@ export default function ProjectDetailPage() {
                                 </SelectContent>
                             </Select>
                         </div>
+
+                        {/* Priority Filter */}
+                        <Select value={filterPriority} onValueChange={setFilterPriority}>
+                            <SelectTrigger className="w-auto h-8 bg-transparent">
+                                <Flag className="h-4 w-4 mr-2" />
+                                <span className="text-sm">Priority</span>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Priorities</SelectItem>
+                                <SelectItem value="high">High</SelectItem>
+                                <SelectItem value="medium">Medium</SelectItem>
+                                <SelectItem value="low">Low</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        {/* Deadline Filter */}
+                        <Select value={filterDeadline} onValueChange={setFilterDeadline}>
+                            <SelectTrigger className="w-auto h-8 bg-transparent">
+                                <Calendar className="h-4 w-4 mr-2" />
+                                <span className="text-sm">Deadline</span>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Deadlines</SelectItem>
+                                <SelectItem value="overdue">Overdue</SelectItem>
+                                <SelectItem value="today">Due Today</SelectItem>
+                                <SelectItem value="this_week">Due This Week</SelectItem>
+                            </SelectContent>
+                        </Select>
 
                         {/* Sort */}
                         <div className="flex items-center gap-1">
@@ -379,6 +466,25 @@ export default function ProjectDetailPage() {
                     onOpenChange={setShowCreateTask}
                     projectId={parseInt(projectId)}
                     onSuccess={handleTaskCreated}
+                />
+            )}
+
+            {selectedTask && (
+                <EditTaskDialog
+                    open={!!selectedTask}
+                    onOpenChange={(open: boolean) => {
+                        if (!open) {
+                            setSelectedTask(null);
+                            setTaskDialogTab('details');
+                        }
+                    }}
+                    task={selectedTask}
+                    onSuccess={() => {
+                        handleTaskUpdated();
+                        setSelectedTask(null);
+                        setTaskDialogTab('details');
+                    }}
+                    defaultTab={taskDialogTab}
                 />
             )}
         </div>

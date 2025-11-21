@@ -4,7 +4,6 @@ export interface Project {
     id: number;
     title: string;
     description: string;
-    status: 'in_progress' | 'completed' | 'on_hold';
     start_date: string | null;
     end_date: string | null;
     created_by: number;
@@ -25,6 +24,7 @@ export interface Project {
         last_name: string;
     }>;
     task_count: number;
+    completion_percentage: number;
     created_at: string;
     updated_at: string;
 }
@@ -32,7 +32,6 @@ export interface Project {
 export interface CreateProjectData {
     title: string;
     description?: string;
-    status?: 'in_progress' | 'completed' | 'on_hold';
     start_date?: string;
     end_date?: string;
     members?: number[];

@@ -76,6 +76,24 @@ const categorizeTasksByDate = (tasks: Task[]) => {
     return categories;
 };
 
+// Helper function to categorize tasks by status
+const categorizeTasksByStatus = (tasks: Task[]) => {
+    return {
+        todo: tasks.filter(task => task.status === 'todo'),
+        in_progress: tasks.filter(task => task.status === 'in_progress'),
+        completed: tasks.filter(task => task.status === 'completed'),
+    };
+};
+
+// Helper function to categorize tasks by priority
+const categorizeTasksByPriority = (tasks: Task[]) => {
+    return {
+        high: tasks.filter(task => task.priority === 'high'),
+        medium: tasks.filter(task => task.priority === 'medium'),
+        low: tasks.filter(task => task.priority === 'low'),
+    };
+};
+
 const getStatusBadge = (status: string) => {
     const variants: Record<string, { className: string, icon: any, label: string }> = {
         todo: { className: "bg-gray-100 text-gray-700", icon: AlertCircle, label: "To Do" },
@@ -235,6 +253,7 @@ export const UserTasks = () => {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+    const [viewType, setViewType] = useState<'date' | 'status' | 'priority'>('date');
 
     useEffect(() => {
         loadTasks();
@@ -242,7 +261,7 @@ export const UserTasks = () => {
 
     const loadTasks = async () => {
         try {
-            const data = await taskService.getAllTasks();
+            const data = await taskService.getMyTasks();
             setTasks(data);
         } catch (error) {
             console.error('Error loading tasks:', error);
@@ -264,6 +283,118 @@ export const UserTasks = () => {
     });
 
     const categorizedTasks = categorizeTasksByDate(filteredTasks);
+    const statusTasks = categorizeTasksByStatus(filteredTasks);
+    const priorityTasks = categorizeTasksByPriority(filteredTasks);
+
+    const renderDateView = () => (
+        <div className="space-y-4">
+            <TaskGroup
+                title="Past Dates"
+                count={categorizedTasks.pastDates.length}
+                tasks={categorizedTasks.pastDates}
+                color="text-red-600"
+                onTaskUpdate={handleTaskUpdate}
+                onTaskClick={setSelectedTask}
+            />
+            <TaskGroup
+                title="Today"
+                count={categorizedTasks.today.length}
+                tasks={categorizedTasks.today}
+                onTaskUpdate={handleTaskUpdate}
+                onTaskClick={setSelectedTask}
+            />
+            <TaskGroup
+                title="This week"
+                count={categorizedTasks.thisWeek.length}
+                tasks={categorizedTasks.thisWeek}
+                color="text-blue-600"
+                onTaskUpdate={handleTaskUpdate}
+                onTaskClick={setSelectedTask}
+            />
+            <TaskGroup
+                title="Next week"
+                count={categorizedTasks.nextWeek.length}
+                tasks={categorizedTasks.nextWeek}
+                color="text-cyan-600"
+                onTaskUpdate={handleTaskUpdate}
+                onTaskClick={setSelectedTask}
+            />
+            <TaskGroup
+                title="Later"
+                count={categorizedTasks.later.length}
+                tasks={categorizedTasks.later}
+                color="text-yellow-600"
+                onTaskUpdate={handleTaskUpdate}
+                onTaskClick={setSelectedTask}
+            />
+            <TaskGroup
+                title="No Due Date"
+                count={categorizedTasks.noDueDate.length}
+                tasks={categorizedTasks.noDueDate}
+                color="text-gray-600"
+                onTaskUpdate={handleTaskUpdate}
+                onTaskClick={setSelectedTask}
+            />
+        </div>
+    );
+
+    const renderStatusView = () => (
+        <div className="space-y-4">
+            <TaskGroup
+                title="To Do"
+                count={statusTasks.todo.length}
+                tasks={statusTasks.todo}
+                color="text-gray-600"
+                onTaskUpdate={handleTaskUpdate}
+                onTaskClick={setSelectedTask}
+            />
+            <TaskGroup
+                title="In Progress"
+                count={statusTasks.in_progress.length}
+                tasks={statusTasks.in_progress}
+                color="text-yellow-600"
+                onTaskUpdate={handleTaskUpdate}
+                onTaskClick={setSelectedTask}
+            />
+            <TaskGroup
+                title="Completed"
+                count={statusTasks.completed.length}
+                tasks={statusTasks.completed}
+                color="text-green-600"
+                onTaskUpdate={handleTaskUpdate}
+                onTaskClick={setSelectedTask}
+            />
+        </div>
+    );
+
+    const renderPriorityView = () => (
+        <div className="space-y-4">
+            <TaskGroup
+                title="High Priority"
+                count={priorityTasks.high.length}
+                tasks={priorityTasks.high}
+                color="text-red-600"
+                onTaskUpdate={handleTaskUpdate}
+                onTaskClick={setSelectedTask}
+            />
+            <TaskGroup
+                title="Medium Priority"
+                count={priorityTasks.medium.length}
+                tasks={priorityTasks.medium}
+                color="text-yellow-600"
+                onTaskUpdate={handleTaskUpdate}
+                onTaskClick={setSelectedTask}
+            />
+            <TaskGroup
+                title="Low Priority"
+                count={priorityTasks.low.length}
+                tasks={priorityTasks.low}
+                color="text-blue-600"
+                onTaskUpdate={handleTaskUpdate}
+                onTaskClick={setSelectedTask}
+            />
+        </div>
+    );
 
     if (loading) {
         return (
@@ -284,8 +415,8 @@ export const UserTasks = () => {
                 </div>
             </div>
 
-            {/* Search Bar */}
-            <div className="flex gap-2">
+            {/* Search Bar and View Filters */}
+            <div className="flex gap-4 items-center">
                 <div className="relative flex-1 max-w-md">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -294,6 +425,32 @@ export const UserTasks = () => {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-8"
                     />
+                </div>
+                <div className="flex gap-2">
+                    <Button
+                        variant={viewType === 'date' ? 'default' : 'outline'}
+                        onClick={() => setViewType('date')}
+                        className={viewType === 'date' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 border-0' : ''}
+                    >
+                        <CalendarIcon className="h-4 w-4 mr-2" />
+                        Date view
+                    </Button>
+                    <Button
+                        variant={viewType === 'status' ? 'default' : 'outline'}
+                        onClick={() => setViewType('status')}
+                        className={viewType === 'status' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 border-0' : ''}
+                    >
+                        <Clipboard className="h-4 w-4 mr-2" />
+                        Status view
+                    </Button>
+                    <Button
+                        variant={viewType === 'priority' ? 'default' : 'outline'}
+                        onClick={() => setViewType('priority')}
+                        className={viewType === 'priority' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 border-0' : ''}
+                    >
+                        <AlertCircle className="h-4 w-4 mr-2" />
+                        Priority view
+                    </Button>
                 </div>
             </div>
 
@@ -304,55 +461,11 @@ export const UserTasks = () => {
                     <p>No tasks assigned to you yet.</p>
                 </div>
             ) : (
-                <div className="space-y-4">
-                    <TaskGroup
-                        title="Past Dates"
-                        count={categorizedTasks.pastDates.length}
-                        tasks={categorizedTasks.pastDates}
-                        color="text-red-600"
-                        onTaskUpdate={handleTaskUpdate}
-                        onTaskClick={setSelectedTask}
-                    />
-                    <TaskGroup
-                        title="Today"
-                        count={categorizedTasks.today.length}
-                        tasks={categorizedTasks.today}
-                        onTaskUpdate={handleTaskUpdate}
-                        onTaskClick={setSelectedTask}
-                    />
-                    <TaskGroup
-                        title="This week"
-                        count={categorizedTasks.thisWeek.length}
-                        tasks={categorizedTasks.thisWeek}
-                        color="text-blue-600"
-                        onTaskUpdate={handleTaskUpdate}
-                        onTaskClick={setSelectedTask}
-                    />
-                    <TaskGroup
-                        title="Next week"
-                        count={categorizedTasks.nextWeek.length}
-                        tasks={categorizedTasks.nextWeek}
-                        color="text-cyan-600"
-                        onTaskUpdate={handleTaskUpdate}
-                        onTaskClick={setSelectedTask}
-                    />
-                    <TaskGroup
-                        title="Later"
-                        count={categorizedTasks.later.length}
-                        tasks={categorizedTasks.later}
-                        color="text-yellow-600"
-                        onTaskUpdate={handleTaskUpdate}
-                        onTaskClick={setSelectedTask}
-                    />
-                    <TaskGroup
-                        title="No Due Date"
-                        count={categorizedTasks.noDueDate.length}
-                        tasks={categorizedTasks.noDueDate}
-                        color="text-gray-600"
-                        onTaskUpdate={handleTaskUpdate}
-                        onTaskClick={setSelectedTask}
-                    />
-                </div>
+                <>
+                    {viewType === 'date' && renderDateView()}
+                    {viewType === 'status' && renderStatusView()}
+                    {viewType === 'priority' && renderPriorityView()}
+                </>
             )}
 
             {selectedTask && (

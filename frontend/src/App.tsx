@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { ProjectProvider } from '@/contexts/ProjectContext';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import Profile from '@/pages/Profile';
@@ -16,7 +17,8 @@ import ViewUserPage from '@/pages/admin/users/view';
 import EditUserPage from '@/pages/admin/users/edit';
 import ProjectsPage from '@/pages/admin/projects';
 import TasksPage from '@/pages/admin/tasks';
-import ReportsPage from '@/pages/admin/reports';
+import AdminReportsPage from '@/pages/admin/reports';
+import UserReportsPage from '@/pages/user/reports';
 import AuditTrailPage from '@/pages/admin/audit_trail';
 import AppLayout from './layouts/app-layout';
 
@@ -135,7 +137,7 @@ function AppRoutes() {
         path="/admin/reports"
         element={
           <ProtectedRoute allowedRoles={['admin']}>
-            <ReportsPage />
+            <AdminReportsPage />
           </ProtectedRoute>
         }
       />
@@ -182,6 +184,14 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/user/reports"
+        element={
+          <ProtectedRoute allowedRoles={['user']}>
+            <UserReportsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/user/projects/:projectId/settings"
         element={
           <ProtectedRoute allowedRoles={['user']}>
@@ -216,31 +226,33 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <Toaster
-          position='top-center'
-          toastOptions={{
-            duration: 3000,
-            style: {
-              background: '#363636',
-              color: '#fff',
-            },
-            success: {
+        <ProjectProvider>
+          <Toaster
+            position='top-center'
+            toastOptions={{
               duration: 3000,
-              iconTheme: {
-                primary: '#10b981',
-                secondary: '#fff',
+              style: {
+                background: '#363636',
+                color: '#fff',
               },
-            },
-            error: {
-              duration: 4000,
-              iconTheme: {
-                primary: '#ef4444',
-                secondary: '#fff',
+              success: {
+                duration: 3000,
+                iconTheme: {
+                  primary: '#10b981',
+                  secondary: '#fff',
+                },
               },
-            },
-          }}
-        />
-        <AppRoutes />
+              error: {
+                duration: 4000,
+                iconTheme: {
+                  primary: '#ef4444',
+                  secondary: '#fff',
+                },
+              },
+            }}
+          />
+          <AppRoutes />
+        </ProjectProvider>
       </AuthProvider>
     </Router>
   );

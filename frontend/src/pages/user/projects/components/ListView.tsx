@@ -4,10 +4,11 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { useState, useMemo } from 'react';
 import { EditTaskDialog } from './EditTaskDialog';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ChevronDown, MessageCircle, MessageCircleMore } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ChevronDown, MessageCircleMore } from 'lucide-react';
 import { taskService } from '@/api/task.service';
 import toast from 'react-hot-toast';
+import { getMediaUrl } from '@/lib/utils';
 
 interface ListViewProps {
     tasks: Task[];
@@ -205,11 +206,14 @@ export function ListView({ tasks, onTaskUpdate, groupBy, projectMembers = [] }: 
 
         return (
             <tr className="border-b hover:bg-muted/30 transition-colors group">
-                <td className="py-3 px-4 w-8">
+                {/* Checkbox */}
+                <td className="py-3 px-4 w-[5%]">
                     <input type="checkbox" className="rounded" onClick={(e) => e.stopPropagation()} />
                 </td>
+
+                {/* Task Title */}
                 <td
-                    className="py-3 px-4 max-w-xs cursor-pointer"
+                    className="py-3 px-4 w-[25%] cursor-pointer"
                     onDoubleClick={() => handleCellDoubleClick(task, 'title', task.title)}
                 >
                     {isEditingTitle ? (
@@ -232,7 +236,9 @@ export function ListView({ tasks, onTaskUpdate, groupBy, projectMembers = [] }: 
                         </div>
                     )}
                 </td>
-                <td className="py-3 px-4">
+
+                {/* Assignee */}
+                <td className="py-3 px-4 w-[12%]">
                     <Select
                         value={task.assigned_to?.toString() || 'unassigned'}
                         onValueChange={(value) => handleSelectChange(task, 'assigned_to', value)}
@@ -241,6 +247,7 @@ export function ListView({ tasks, onTaskUpdate, groupBy, projectMembers = [] }: 
                             <div className="flex items-center gap-2 cursor-pointer">
                                 {task.assigned_to_details ? (
                                     <Avatar className="h-7 w-7">
+                                        <AvatarImage src={getMediaUrl(task.assigned_to_details.profile_picture)} alt={`${task.assigned_to_details.first_name} ${task.assigned_to_details.last_name}`} />
                                         <AvatarFallback className="text-xs bg-primary/10">
                                             {task.assigned_to_details.first_name[0]}
                                             {task.assigned_to_details.last_name[0]}
@@ -263,13 +270,15 @@ export function ListView({ tasks, onTaskUpdate, groupBy, projectMembers = [] }: 
                         </SelectContent>
                     </Select>
                 </td>
-                <td className="py-3 px-4">
+
+                {/* Priority */}
+                <td className="py-3 px-4 w-[10%]">
                     <Select
                         value={task.priority}
                         onValueChange={(value) => handleSelectChange(task, 'priority', value)}
                     >
                         <SelectTrigger className="h-8 w-auto border-0 bg-transparent p-0 shadow-none">
-                            <Badge className={`${getPriorityColor(task.priority)} border-0 font-normal cursor-pointer`}>
+                            <Badge className={`${getPriorityColor(task.priority)} border-0 font-normal cursor-pointer transition-none hover:${getPriorityColor(task.priority)}`}>
                                 {getPriorityLabel(task.priority)}
                             </Badge>
                         </SelectTrigger>
@@ -280,8 +289,10 @@ export function ListView({ tasks, onTaskUpdate, groupBy, projectMembers = [] }: 
                         </SelectContent>
                     </Select>
                 </td>
+
+                {/* Due Date */}
                 <td
-                    className="py-3 px-4 cursor-pointer"
+                    className="py-3 px-4 w-[12%] cursor-pointer"
                     onDoubleClick={() => handleCellDoubleClick(task, 'due_date', task.due_date || '')}
                 >
                     {isEditingDueDate ? (
@@ -305,13 +316,15 @@ export function ListView({ tasks, onTaskUpdate, groupBy, projectMembers = [] }: 
                         </span>
                     )}
                 </td>
-                <td className="py-3 px-4">
+
+                {/* Status */}
+                <td className="py-3 px-4 w-[12%]">
                     <Select
                         value={task.status}
                         onValueChange={(value) => handleSelectChange(task, 'status', value)}
                     >
                         <SelectTrigger className="h-8 w-auto border-0 bg-transparent p-0 shadow-none">
-                            <Badge className={`${getStatusColor(task.status)} border-0 font-normal cursor-pointer`}>
+                            <Badge className={`${getStatusColor(task.status)} border-0 font-normal cursor-pointer transition-none hover:${getStatusColor(task.status)}`}>
                                 {getStatusLabel(task.status)}
                             </Badge>
                         </SelectTrigger>
@@ -322,8 +335,10 @@ export function ListView({ tasks, onTaskUpdate, groupBy, projectMembers = [] }: 
                         </SelectContent>
                     </Select>
                 </td>
+
+                {/* Description */}
                 <td
-                    className="py-3 px-4 cursor-pointer"
+                    className="py-3 px-4 w-[19%] cursor-pointer"
                     onDoubleClick={() => handleCellDoubleClick(task, 'description', task.description || '')}
                 >
                     {isEditingDescription ? (
@@ -341,10 +356,14 @@ export function ListView({ tasks, onTaskUpdate, groupBy, projectMembers = [] }: 
                             />
                         </div>
                     ) : (
-                        <span className="text-sm text-muted-foreground truncate">{task.description || '-'}</span>
+                        <div className="text-sm text-muted-foreground wrap-break-word">
+                            {task.description || '-'}
+                        </div>
                     )}
                 </td>
-                <td className="py-3 px-4">
+
+                {/* Comments */}
+                <td className="py-3 px-4 w-[5%]">
                     <button
                         onClick={() => {
                             setDialogTab('comments');
@@ -392,7 +411,7 @@ export function ListView({ tasks, onTaskUpdate, groupBy, projectMembers = [] }: 
                 {/* Group Table */}
                 {!isCollapsed && (
                     <div className="border rounded-lg overflow-hidden bg-background">
-                        <table className="w-full border-collapse">
+                        <table className="w-full table-fixed border-collapse">
                             <thead className="bg-muted/20 border-b">
                                 <tr className='bg-gray-100'>
                                     <th className="py-3 px-4 w-8"></th>
@@ -414,7 +433,7 @@ export function ListView({ tasks, onTaskUpdate, groupBy, projectMembers = [] }: 
                                     <th className="py-3 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                         Description
                                     </th>
-                                    <th className="py-3 px-4 w-8"></th>
+                                    <th className="py-3 px-8 w-8"></th>
                                 </tr>
                             </thead>
                             <tbody>

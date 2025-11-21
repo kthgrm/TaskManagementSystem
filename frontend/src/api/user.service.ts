@@ -54,13 +54,13 @@ export const userService = {
   },
 
   // Create user (admin only)
-  createUser: async (data: CreateUserData): Promise<{ message: string; user: User }> => {
+  createUser: async (data: CreateUserData | FormData): Promise<{ message: string; user: User }> => {
     const response = await api.post<{ message: string; user: User }>('users/', data);
     return response.data;
   },
 
   // Update user (admin only)
-  updateUser: async (id: number, data: UpdateUserData): Promise<{ message: string; user: User }> => {
+  updateUser: async (id: number, data: UpdateUserData | FormData): Promise<{ message: string; user: User }> => {
     const response = await api.put<{ message: string; user: User }>(`users/${id}/`, data);
     return response.data;
   },

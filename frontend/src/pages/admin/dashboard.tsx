@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -6,11 +7,9 @@ import {
     Users,
     FolderKanban,
     ClipboardList,
-    CheckCircle2,
-    Clock,
-    AlertCircle,
     TrendingUp,
-    Activity
+    Loader2,
+    Clipboard
 } from 'lucide-react';
 import {
     BarChart,
@@ -23,303 +22,381 @@ import {
     PieChart,
     Pie,
     Cell,
-    LineChart,
-    Line,
     Legend
-} from 'recharts';// Test data for statistics
-const statistics = {
-    totalUsers: 45,
-    activeUsers: 38,
-    totalProjects: 12,
-    activeProjects: 8,
-    completedProjects: 3,
-    archivedProjects: 1,
-    totalTasks: 156,
-    completedTasks: 89,
-    inProgressTasks: 42,
-    todoTasks: 18,
-    tasksThisWeek: 23,
-    tasksThisMonth: 67,
-};
+} from 'recharts';
+import { userService } from '@/api/user.service';
+import { projectService, type Project } from '@/api/project.service';
+import { taskService, type Task } from '@/api/task.service';
+import toast from 'react-hot-toast';
 
-// Project statistics with progress
-const projectStats = [
-    {
-        name: 'E-Commerce Platform',
-        progress: 62,
-        tasks: { total: 45, completed: 28 },
-        members: 8,
-        status: 'active' as const
-    },
-    {
-        name: 'Mobile App Development',
-        progress: 47,
-        tasks: { total: 32, completed: 15 },
-        members: 5,
-        status: 'active' as const
-    },
-    {
-        name: 'CRM System',
-        progress: 100,
-        tasks: { total: 28, completed: 28 },
-        members: 6,
-        status: 'completed' as const
-    },
-    {
-        name: 'Analytics Dashboard',
-        progress: 36,
-        tasks: { total: 22, completed: 8 },
-        members: 4,
-        status: 'active' as const
-    },
-];
-
-// Recent activities
-const recentActivities = [
-    { user: 'John Doe', action: 'created task', target: 'Implement authentication', time: '5 min ago' },
-    { user: 'Jane Smith', action: 'completed task', target: 'Design database schema', time: '12 min ago' },
-    { user: 'Bob Wilson', action: 'updated project', target: 'E-Commerce Platform', time: '1 hour ago' },
-    { user: 'Alice Brown', action: 'added member', target: 'Mobile App Development', time: '2 hours ago' },
-];
-
-// Task status distribution for pie chart
-const taskStatusData = [
-    { name: 'Completed', value: statistics.completedTasks, color: '#22c55e' },
-    { name: 'In Progress', value: statistics.inProgressTasks, color: '#3b82f6' },
-    { name: 'To Do', value: statistics.todoTasks, color: '#6b7280' },
-];
-
-// Weekly task completion trend
-const weeklyTaskData = [
-    { day: 'Mon', completed: 12, created: 8 },
-    { day: 'Tue', completed: 15, created: 10 },
-    { day: 'Wed', completed: 18, created: 12 },
-    { day: 'Thu', completed: 14, created: 15 },
-    { day: 'Fri', completed: 16, created: 9 },
-    { day: 'Sat', completed: 8, created: 5 },
-    { day: 'Sun', completed: 6, created: 4 },
-];
-
-// Project workload distribution
-const projectWorkloadData = projectStats.map(p => ({
-    name: p.name.split(' ')[0], // Shortened name for chart
-    tasks: p.tasks.total,
-    completed: p.tasks.completed,
-    remaining: p.tasks.total - p.tasks.completed,
-})); export const AdminDashboard = () => {
+export const AdminDashboard = () => {
     const { user } = useAuth();
-    const completionRate = Math.round((statistics.completedTasks / statistics.totalTasks) * 100);
+    const [loading, setLoading] = useState(true);
+    const [users, setUsers] = useState<any[]>([]);
+    const [projects, setProjects] = useState<Project[]>([]);
+    const [tasks, setTasks] = useState<Task[]>([]);
+
+    useEffect(() => {
+        loadDashboardData();
+    }, []);
+
+    const loadDashboardData = async () => {
+        try {
+            setLoading(true);
+            const [usersData, projectsData, tasksData] = await Promise.all([
+                userService.getAllUsers(),
+                projectService.getAllProjects(),
+                taskService.getAllTasks()
+            ]);
+            setUsers(usersData);
+            setProjects(projectsData);
+            setTasks(tasksData);
+        } catch (error) {
+            console.error('Error loading dashboard data:', error);
+            toast.error('Failed to load dashboard data');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-96">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        );
+    }
+
+    // Calculate statistics from real data
+    const statistics = {
+        totalUsers: users.length,
+        activeUsers: users.filter(u => u.is_active).length,
+        adminUsers: users.filter(u => u.is_staff).length,
+        totalProjects: projects.length,
+        totalTasks: tasks.length,
+        completedTasks: tasks.filter(t => t.status === 'completed').length,
+        inProgressTasks: tasks.filter(t => t.status === 'in_progress').length,
+        todoTasks: tasks.filter(t => t.status === 'todo').length,
+        highPriorityTasks: tasks.filter(t => t.priority === 'high').length,
+        mediumPriorityTasks: tasks.filter(t => t.priority === 'medium').length,
+        lowPriorityTasks: tasks.filter(t => t.priority === 'low').length,
+    };
+
+    // Calculate completion rate
+    const completionRate = statistics.totalTasks > 0
+        ? Math.round((statistics.completedTasks / statistics.totalTasks) * 100)
+        : 0;
+
+    // Task status distribution for pie chart
+    const taskStatusData = [
+        { name: 'Completed', value: statistics.completedTasks, color: '#22c55e' },
+        { name: 'In Progress', value: statistics.inProgressTasks, color: '#3b82f6' },
+        { name: 'To Do', value: statistics.todoTasks, color: '#6b7280' },
+    ].filter(item => item.value > 0);
+
+    // Priority distribution for pie chart
+    const priorityData = [
+        { name: 'High', value: statistics.highPriorityTasks, color: '#ef4444' },
+        { name: 'Medium', value: statistics.mediumPriorityTasks, color: '#f59e0b' },
+        { name: 'Low', value: statistics.lowPriorityTasks, color: '#3b82f6' },
+    ].filter(item => item.value > 0);
+
+    // Get top projects by task count
+    const projectStats = projects.map(project => {
+        const projectTasks = tasks.filter(t => t.project === project.id);
+        const completedCount = projectTasks.filter(t => t.status === 'completed').length;
+        const totalCount = projectTasks.length;
+        const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+        return {
+            id: project.id,
+            name: project.title,
+            progress,
+            tasks: { total: totalCount, completed: completedCount },
+            members: (project.members?.length || 0) + 1, // +1 for creator
+        };
+    }).sort((a, b) => b.tasks.total - a.tasks.total).slice(0, 5);
+
+    // Project workload distribution
+    const projectWorkloadData = projectStats.map(p => ({
+        name: p.name.length > 15 ? p.name.substring(0, 15) + '...' : p.name,
+        tasks: p.tasks.total,
+        completed: p.tasks.completed,
+        remaining: p.tasks.total - p.tasks.completed,
+    }));
+
+    // Get recent tasks (last 5 created)
+    const recentTasks = [...tasks]
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 5);
 
     return (
         <div className="space-y-6">
+            {/* Header Section */}
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-                <p className="text-muted-foreground">
-                    Welcome back, {user?.first_name || user?.username}!
-                </p>
-            </div>
-
-            {/* Overview Statistics */}
-            <div className="grid gap-4 md:grid-cols-3">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{statistics.totalUsers}</div>
-                        <p className="text-xs text-muted-foreground">
-                            <span className="text-green-600">{statistics.activeUsers}</span> active users
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-4xl font-bold tracking-tight bg-linear-to-r from-violet-800 to-violet-600 bg-clip-text text-transparent">
+                            Admin Dashboard
+                        </h1>
+                        <p className="text-muted-foreground mt-2 text-lg">
+                            Welcome back, {user?.first_name || user?.username}! Here's your system overview.
                         </p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
-                        <FolderKanban className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{statistics.totalProjects}</div>
-                        <p className="text-xs text-muted-foreground">
-                            <span className="text-green-600">{statistics.activeProjects}</span> active,
-                            <span className="text-blue-600"> {statistics.completedProjects}</span> completed
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
-                        <ClipboardList className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{statistics.totalTasks}</div>
-                        <p className="text-xs text-muted-foreground">
-                            {statistics.tasksThisWeek} tasks this week
-                        </p>
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
             </div>
 
-            {/* Task Status Overview */}
-            <div className="grid gap-4 md:grid-cols-3">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Completed</CardTitle>
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+            {/* Key Metrics Overview */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card className="border-l-4 border-l-violet-800 hover:shadow-lg transition-all hover:-translate-y-1">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
+                        <div className="h-10 w-10 rounded-lg bg-violet-100 flex items-center justify-center">
+                            <Users className="h-5 w-5 text-violet-800" />
+                        </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{statistics.completedTasks}</div>
+                        <div className="text-3xl font-bold text-violet-800">{statistics.totalUsers}</div>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-                        <Clock className="h-4 w-4 text-blue-600" />
+                <Card className="border-l-4 border-l-blue-600 hover:shadow-lg transition-all hover:-translate-y-1">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Projects</CardTitle>
+                        <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                            <FolderKanban className="h-5 w-5 text-blue-600" />
+                        </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{statistics.inProgressTasks}</div>
+                        <div className="text-3xl font-bold text-blue-600">{statistics.totalProjects}</div>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">To Do</CardTitle>
-                        <ClipboardList className="h-4 w-4 text-gray-600" />
+                <Card className="border-l-4 border-l-amber-600 hover:shadow-lg transition-all hover:-translate-y-1">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Tasks</CardTitle>
+                        <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                            <ClipboardList className="h-5 w-5 text-amber-600" />
+                        </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{statistics.todoTasks}</div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-                {/* Task Status Distribution - Pie Chart */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Task Status Distribution</CardTitle>
-                        <CardDescription>Overview of all task statuses</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <PieChart>
-                                <Pie
-                                    data={taskStatusData}
-                                    cx="50%"
-                                    cy="50%"
-                                    labelLine={false}
-                                    label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
-                                    outerRadius={80}
-                                    fill="#8884d8"
-                                    dataKey="value"
-                                >
-                                    {taskStatusData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} />
-                                    ))}
-                                </Pie>
-                                <Tooltip />
-                            </PieChart>
-                        </ResponsiveContainer>
+                        <div className="text-3xl font-bold text-amber-600">{statistics.totalTasks}</div>
                     </CardContent>
                 </Card>
 
-                {/* Weekly Task Trend - Line Chart */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Weekly Task Trend</CardTitle>
-                        <CardDescription>Tasks completed vs created this week</CardDescription>
+                <Card className="border-l-4 border-l-green-600 hover:shadow-lg transition-all hover:-translate-y-1">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Completion Rate</CardTitle>
+                        <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
+                            <TrendingUp className="h-5 w-5 text-green-600" />
+                        </div>
                     </CardHeader>
                     <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <LineChart data={weeklyTaskData}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="day" />
-                                <YAxis />
-                                <Tooltip />
-                                <Legend />
-                                <Line type="monotone" dataKey="completed" stroke="#22c55e" strokeWidth={2} name="Completed" />
-                                <Line type="monotone" dataKey="created" stroke="#3b82f6" strokeWidth={2} name="Created" />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-                {/* Project Workload - Bar Chart */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Project Workload</CardTitle>
-                        <CardDescription>Task distribution across projects</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <BarChart data={projectWorkloadData}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="name" />
-                                <YAxis />
-                                <Tooltip />
-                                <Legend />
-                                <Bar dataKey="completed" stackId="a" fill="#22c55e" name="Completed" />
-                                <Bar dataKey="remaining" stackId="a" fill="#94a3b8" name="Remaining" />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-
-                {/* Recent Activities */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Recent Activities</CardTitle>
-                        <CardDescription>Latest system activities</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {recentActivities.map((activity, index) => (
-                                <div key={index} className="flex items-start gap-3">
-                                    <Activity className="h-4 w-4 text-muted-foreground mt-0.5" />
-                                    <div className="flex-1 space-y-1">
-                                        <p className="text-sm">
-                                            <span className="font-medium">{activity.user}</span>{' '}
-                                            <span className="text-muted-foreground">{activity.action}</span>{' '}
-                                            <span className="font-medium">"{activity.target}"</span>
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">{activity.time}</p>
-                                    </div>
-                                </div>
-                            ))}
+                        <div>
+                            <div className="text-3xl font-bold text-green-600">{completionRate}%</div>
+                            <Progress value={completionRate} className="h-2" />
+                            <p className="text-xs text-muted-foreground mt-1">
+                                {statistics.completedTasks} of {statistics.totalTasks} tasks done
+                            </p>
                         </div>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Project Statistics with Progress Bars */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Project Progress</CardTitle>
-                    <CardDescription>Detailed progress for each project</CardDescription>
+            {/* Charts Row */}
+            <div className="grid gap-4 md:grid-cols-2">
+                {/* Task Status Distribution */}
+                <Card className="border-t-4 border-t-green-600 shadow-md hover:shadow-lg transition-shadow pt-0">
+                    <CardHeader className="bg-linear-to-r from-green-50 to-transparent py-4">
+                        <CardTitle className="text-green-800">Task Status</CardTitle>
+                        <CardDescription>Distribution by completion status</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {taskStatusData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={200}>
+                                <PieChart>
+                                    <Pie
+                                        data={taskStatusData}
+                                        cx="50%"
+                                        cy="50%"
+                                        labelLine={false}
+                                        label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
+                                        outerRadius={60}
+                                        fill="#8884d8"
+                                        dataKey="value"
+                                    >
+                                        {taskStatusData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+                                No tasks available
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Priority Distribution */}
+                <Card className="border-t-4 border-t-amber-600 shadow-md hover:shadow-lg transition-shadow pt-0">
+                    <CardHeader className="bg-linear-to-r from-amber-50 to-transparent py-4">
+                        <CardTitle className="text-amber-800">Task Priority</CardTitle>
+                        <CardDescription>Distribution by priority level</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {priorityData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={200}>
+                                <PieChart>
+                                    <Pie
+                                        data={priorityData}
+                                        cx="50%"
+                                        cy="50%"
+                                        labelLine={false}
+                                        label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
+                                        outerRadius={60}
+                                        fill="#8884d8"
+                                        dataKey="value"
+                                    >
+                                        {priorityData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+                                No tasks available
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+                {/* Project Workload */}
+                <Card className="border-t-4 border-t-violet-600 shadow-md hover:shadow-lg transition-shadow pt-0">
+                    <CardHeader className="bg-linear-to-r from-violet-50 to-transparent py-4">
+                        <CardTitle className="text-violet-800">Project Workload</CardTitle>
+                        <CardDescription>Task distribution across top 5 projects</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {projectWorkloadData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={projectWorkloadData}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Legend />
+                                    <Bar dataKey="completed" stackId="a" fill="#22c55e" name="Completed" />
+                                    <Bar dataKey="remaining" stackId="a" fill="#94a3b8" name="Remaining" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                                No projects available
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Recent Tasks */}
+                <Card className="border-t-4 border-t-blue-600 shadow-md hover:shadow-lg transition-shadow pt-0">
+                    <CardHeader className="bg-linear-to-r from-blue-50 to-transparent py-4">
+                        <CardTitle className="text-blue-800">Recent Tasks</CardTitle>
+                        <CardDescription>Latest 5 created tasks</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {recentTasks.length > 0 ? (
+                            <div className="space-y-4">
+                                {recentTasks.map((task) => {
+                                    const project = projects.find(p => p.id === task.project);
+                                    const assignee = task.assigned_to_details;
+                                    return (
+                                        <div key={task.id} className="flex items-start gap-3 pb-3 border-b last:border-0">
+                                            <Clipboard className="h-4 w-4 text-muted-foreground mt-0.5" />
+                                            <div className="flex-1 space-y-1">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-sm font-medium">{task.title}</p>
+                                                    <Badge variant={
+                                                        task.status === 'completed' ? 'secondary' :
+                                                            task.status === 'in_progress' ? 'default' : 'outline'
+                                                    }>
+                                                        {task.status}
+                                                    </Badge>
+                                                    <Badge variant={
+                                                        task.priority === 'high' ? 'destructive' :
+                                                            task.priority === 'medium' ? 'default' : 'outline'
+                                                    }>
+                                                        {task.priority}
+                                                    </Badge>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {project?.title || 'Unknown Project'} •
+                                                    {assignee ? ` ${assignee.first_name} ${assignee.last_name}` : ' Unassigned'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                                No tasks available
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Project Progress Details */}
+            <Card className="border-t-4 border-t-violet-600 shadow-md hover:shadow-lg transition-shadow pt-0">
+                <CardHeader className="bg-linear-to-r from-violet-50 to-transparent py-4">
+                    <CardTitle className="text-violet-800">Project Progress Overview</CardTitle>
+                    <CardDescription>Detailed completion metrics for top 5 projects</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {projectStats.map((project, index) => (
-                        <div key={index} className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm font-medium">{project.name}</span>
-                                    <Badge variant={project.status === 'completed' ? 'secondary' : 'default'}>
-                                        {project.status}
+                    {projectStats.length > 0 ? (
+                        projectStats.map((project) => (
+                            <div key={project.id} className="space-y-2 p-4 rounded-lg border hover:bg-violet-50/50 transition-colors">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-10 w-10 rounded-lg bg-violet-100 flex items-center justify-center text-violet-800 font-bold">
+                                            {project.name[0].toUpperCase()}
+                                        </div>
+                                        <span className="text-sm font-semibold">{project.name}</span>
+                                    </div>
+                                    <Badge className="bg-violet-800 text-white hover:bg-violet-900">
+                                        {project.progress}%
                                     </Badge>
                                 </div>
-                                <span className="text-sm text-muted-foreground">{project.progress}%</span>
+                                <Progress value={project.progress} className="h-2.5" />
+                                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                    <div className="flex items-center gap-3">
+                                        <span className="inline-flex items-center gap-1">
+                                            <ClipboardList className="h-3 w-3" />
+                                            {project.tasks.completed}/{project.tasks.total} tasks
+                                        </span>
+                                        <span className="inline-flex items-center gap-1">
+                                            <Users className="h-3 w-3" />
+                                            {project.members} members
+                                        </span>
+                                    </div>
+                                    <span className="text-green-600 font-medium">
+                                        {project.tasks.completed} completed
+                                    </span>
+                                </div>
                             </div>
-                            <Progress value={project.progress} className="h-2" />
-                            <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                <span>Tasks: {project.tasks.completed}/{project.tasks.total}</span>
-                                <span>{project.members} members</span>
-                            </div>
+                        ))
+                    ) : (
+                        <div className="flex items-center justify-center h-24 text-muted-foreground">
+                            No projects available
                         </div>
-                    ))}
+                    )}
                 </CardContent>
             </Card>
         </div>

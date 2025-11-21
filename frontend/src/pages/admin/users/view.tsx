@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, ArrowLeft, Edit, Trash2, UserCheck, UserX } from 'lucide-react';
+import { Loader2, ArrowLeft, Edit, Trash2 } from 'lucide-react';
 import { userService, type User } from '@/api/user.service';
 import { DeleteUserDialog } from './components/DeleteUserDialog';
 import toast from 'react-hot-toast';
+import { getMediaUrl } from '@/lib/utils';
 
 export default function ViewUserPage() {
     const navigate = useNavigate();
@@ -42,19 +43,6 @@ export default function ViewUserPage() {
         }
     };
 
-    const handleToggleStatus = async () => {
-        if (!user) return;
-
-        try {
-            await userService.toggleUserStatus(user.id);
-            toast.success(`User ${user.is_active ? 'deactivated' : 'activated'} successfully`);
-            loadUser();
-        } catch (error: any) {
-            console.error('Error toggling user status:', error);
-            toast.error(error.response?.data?.error || 'Failed to toggle user status');
-        }
-    };
-
     const handleConfirmDelete = async () => {
         if (!user) return;
 
@@ -80,149 +68,198 @@ export default function ViewUserPage() {
         return null;
     }
 
-    const isActive = user.status === 'active' || user.is_active;
-
     return (
         <div className="space-y-6">
+            {/* Header Section */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => navigate('/admin/users')}
+                        className="hover:bg-violet-100"
                     >
-                        <ArrowLeft className="h-4 w-4" />
+                        <ArrowLeft className="h-5 w-5" />
                     </Button>
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">User Details</h1>
                         <p className="text-muted-foreground">View user information and statistics</p>
                     </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                     <Button
-                        variant="outline"
-                        onClick={handleToggleStatus}
-                    >
-                        {isActive ? (
-                            <>
-                                <UserX className="mr-2 h-4 w-4" />
-                                Deactivate
-                            </>
-                        ) : (
-                            <>
-                                <UserCheck className="mr-2 h-4 w-4" />
-                                Activate
-                            </>
-                        )}
-                    </Button>
-                    <Button
-                        variant="outline"
                         onClick={() => navigate(`/admin/users/${user.id}/edit`)}
+                        className="bg-violet-800 hover:bg-violet-900 text-white"
                     >
                         <Edit className="mr-2 h-4 w-4" />
-                        Edit
+                        Edit User
                     </Button>
                     <Button
-                        variant="destructive"
                         onClick={() => setShowDeleteDialog(true)}
+                        className="bg-red-800 hover:bg-red-900 text-white"
                     >
                         <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
+                        Delete User
                     </Button>
                 </div>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Basic Information</CardTitle>
-                        <CardDescription>Personal details and account information</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div>
-                            <Label>Username</Label>
-                            <p className="text-lg font-medium">{user.username}</p>
-                        </div>
-                        <div>
-                            <Label>Email</Label>
-                            <p className="text-lg font-medium">{user.email}</p>
-                        </div>
-                        <div>
-                            <Label>Full Name</Label>
-                            <p className="text-lg font-medium">{user.full_name || '-'}</p>
-                        </div>
-                        <div>
-                            <Label>Phone</Label>
-                            <p className="text-lg font-medium">{user.phone || '-'}</p>
-                        </div>
-                        <div>
-                            <Label>Role</Label>
-                            <div className="mt-1">
-                                <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+            {/* Profile Overview Card */}
+            <Card className="border-l-4 border-l-violet-800">
+                <CardContent>
+                    <div className="flex items-start gap-6">
+                        <Avatar className="h-24 w-24 border-4 border-violet-100">
+                            <AvatarImage src={getMediaUrl(user.profile_picture)} alt={user.username} />
+                            <AvatarFallback className="text-2xl bg-violet-100 text-violet-800">
+                                {user.first_name && user.last_name
+                                    ? `${user.first_name[0]}${user.last_name[0]}`
+                                    : user.username.substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                                <h2 className="text-2xl font-bold">
+                                    {user.first_name && user.last_name
+                                        ? `${user.first_name} ${user.last_name}`
+                                        : user.full_name || user.username}
+                                </h2>
+                                <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="bg-violet-800 hover:bg-violet-900 text-white">
                                     {user.role.toUpperCase()}
                                 </Badge>
                             </div>
+                            <p className="text-muted-foreground mb-1">@{user.username}</p>
+                            <p className="text-muted-foreground">{user.email}</p>
                         </div>
-                        <div>
-                            <Label>Status</Label>
-                            <div className="mt-1">
-                                <Badge variant={isActive ? 'default' : 'outline'}>
-                                    {user.status}
-                                </Badge>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Stats Cards */}
+            <div className="grid gap-4 md:grid-cols-3">
+                <Card className="border-t-4 border-t-violet-800 hover:shadow-md transition-shadow">
+                    <CardContent>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-muted-foreground mb-1">Total Projects</p>
+                                <p className="text-4xl font-bold text-violet-800">{user.project_count || 0}</p>
+                            </div>
+                            <div className="h-14 w-14 rounded-lg bg-violet-100 flex items-center justify-center">
+                                <svg className="h-7 w-7 text-violet-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                </svg>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Activity & Statistics</CardTitle>
-                        <CardDescription>User engagement and activity metrics</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div>
-                            <Label>Projects</Label>
-                            <p className="text-3xl font-bold">{user.project_count || 0}</p>
-                            <p className="text-sm text-muted-foreground">Total projects assigned</p>
+                <Card className="border-t-4 border-t-violet-800 hover:shadow-md transition-shadow">
+                    <CardContent>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-muted-foreground mb-1">Total Tasks</p>
+                                <p className="text-4xl font-bold text-violet-800">{user.task_count || 0}</p>
+                            </div>
+                            <div className="h-14 w-14 rounded-lg bg-violet-100 flex items-center justify-center">
+                                <svg className="h-7 w-7 text-violet-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                            </div>
                         </div>
-                        <div>
-                            <Label>Tasks</Label>
-                            <p className="text-3xl font-bold">{user.task_count || 0}</p>
-                            <p className="text-sm text-muted-foreground">Total tasks assigned</p>
-                        </div>
-                        <div>
-                            <Label>Date Joined</Label>
-                            <p className="text-lg font-medium">
-                                {new Date(user.date_joined).toLocaleDateString('en-US', {
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric',
-                                })}
-                            </p>
+                    </CardContent>
+                </Card>
+
+                <Card className="border-t-4 border-t-violet-800 hover:shadow-md transition-shadow">
+                    <CardContent>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-muted-foreground mb-1">Member Since</p>
+                                <p className="text-xl font-bold text-violet-800">
+                                    {new Date(user.date_joined).toLocaleDateString('en-US', {
+                                        month: 'short',
+                                        year: 'numeric',
+                                    })}
+                                </p>
+                            </div>
+                            <div className="h-14 w-14 rounded-lg bg-violet-100 flex items-center justify-center">
+                                <svg className="h-7 w-7 text-violet-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Profile Picture</CardTitle>
-                    <CardDescription>User avatar and display picture</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Avatar className="h-32 w-32">
-                        <AvatarImage src={user.profile_picture || undefined} alt={user.username} />
-                        <AvatarFallback className="text-4xl">
-                            {user.first_name && user.last_name
-                                ? `${user.first_name[0]}${user.last_name[0]}`
-                                : user.username.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                    </Avatar>
-                    <p className="text-sm text-muted-foreground mt-2">
-                        {user.profile_picture ? 'Custom profile picture' : 'Default avatar with initials'}
-                    </p>
-                </CardContent>
-            </Card>
+            {/* Detailed Information */}
+            <div className="grid gap-6 md:grid-cols-2">
+                <Card className='pt-0'>
+                    <CardHeader className="bg-linear-to-r from-violet-50 to-transparent border-b pt-8">
+                        <CardTitle className="text-violet-800">Contact Information</CardTitle>
+                        <CardDescription>How to reach this user</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-start gap-3">
+                            <div className="h-10 w-10 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                                <svg className="h-5 w-5 text-violet-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <Label>Email Address</Label>
+                                <p className="text-lg font-medium">{user.email}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <div className="h-10 w-10 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                                <svg className="h-5 w-5 text-violet-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <Label>Phone Number</Label>
+                                <p className="text-lg font-medium">{user.phone || 'Not provided'}</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className='pt-0'>
+                    <CardHeader className="bg-linear-to-r from-violet-50 to-transparent border-b pt-8">
+                        <CardTitle className="text-violet-800">Account Details</CardTitle>
+                        <CardDescription>User account information</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-start gap-3">
+                            <div className="h-10 w-10 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                                <svg className="h-5 w-5 text-violet-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <Label>Username</Label>
+                                <p className="text-lg font-medium">@{user.username}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <div className="h-10 w-10 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                                <svg className="h-5 w-5 text-violet-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <Label>Joined</Label>
+                                <p className="text-lg font-medium">
+                                    {new Date(user.date_joined).toLocaleDateString('en-US', {
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric',
+                                    })}
+                                </p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
 
             <DeleteUserDialog
                 open={showDeleteDialog}

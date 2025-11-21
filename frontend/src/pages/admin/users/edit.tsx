@@ -16,6 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { userService, type User, type UpdateUserData } from '@/api/user.service';
 import toast from 'react-hot-toast';
+import { getMediaUrl } from '@/lib/utils';
 
 export default function EditUserPage() {
     const navigate = useNavigate();
@@ -66,7 +67,7 @@ export default function EditUserPage() {
                 setUser(foundUser);
                 setRole(foundUser.role);
                 setIsActive(foundUser.is_active);
-                setPreviewUrl(foundUser.profile_picture || '');
+                setPreviewUrl(getMediaUrl(foundUser.profile_picture));
                 reset({
                     username: foundUser.username,
                     email: foundUser.email,
@@ -107,7 +108,7 @@ export default function EditUserPage() {
             }
             if (profilePicture) formData.append('profile_picture', profilePicture);
 
-            await userService.updateUser(user.id, formData as any);
+            await userService.updateUser(user.id, formData);
             toast.success('User updated successfully');
             navigate('/admin/users');
         } catch (error: any) {
@@ -141,26 +142,54 @@ export default function EditUserPage() {
 
     return (
         <div className="space-y-6">
+            {/* Header Section */}
             <div className="flex items-center gap-4">
                 <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => navigate('/admin/users')}
+                    className="hover:bg-violet-100"
                 >
-                    <ArrowLeft className="h-4 w-4" />
+                    <ArrowLeft className="h-5 w-5" />
                 </Button>
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Edit User</h1>
-                    <p className="text-muted-foreground">Update user information and permissions</p>
+                <div className="flex-1">
+                    <h1 className="text-3xl font-bold tracking-tight bg-linear-to-r from-violet-800 to-violet-600 bg-clip-text text-transparent">Edit User</h1>
+                    <p className="text-muted-foreground mt-1">Update user information and permissions</p>
                 </div>
+                <Button
+                    variant="outline"
+                    onClick={() => navigate(`/admin/users/${userId}`)}
+                    className="border-violet-300 text-violet-800 hover:bg-violet-50"
+                >
+                    View Profile
+                </Button>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>User Information</CardTitle>
-                    <CardDescription>
-                        Modify the user details below
-                    </CardDescription>
+            <Card className="border-t-4 border-t-violet-800 shadow-lg mx-auto max-w-3xl pt-0">
+                <CardHeader className="bg-linear-to-r from-violet-50 to-transparent border-b pt-6 rounded-xl">
+                    <div className="flex items-center gap-4">
+                        <Avatar className="h-16 w-16 border-4 border-violet-100">
+                            <AvatarImage
+                                src={previewUrl || getMediaUrl(user.profile_picture)}
+                                alt={user.username}
+                            />
+                            <AvatarFallback className="text-lg bg-violet-100 text-violet-800">
+                                {user.first_name && user.last_name
+                                    ? `${user.first_name[0]}${user.last_name[0]}`
+                                    : user.username.substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div>
+                            <CardTitle className="text-xl text-violet-800">
+                                {user.first_name && user.last_name
+                                    ? `${user.first_name} ${user.last_name}`
+                                    : user.username}
+                            </CardTitle>
+                            <CardDescription>
+                                @{user.username} • {user.email}
+                            </CardDescription>
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -232,14 +261,14 @@ export default function EditUserPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="profile_picture">Profile Picture</Label>
-                            <div className="flex items-center gap-4 mt-2">
-                                <Avatar className="h-24 w-24">
+                            <Label htmlFor="profile_picture" className="text-base font-semibold">Profile Picture</Label>
+                            <div className="flex items-center gap-4 mt-2 p-4 border-2 border-dashed border-gray-200 rounded-lg hover:border-violet-300 transition-colors">
+                                <Avatar className="h-20 w-20 border-4 border-violet-100">
                                     <AvatarImage
-                                        src={previewUrl || user.profile_picture || undefined}
+                                        src={previewUrl || getMediaUrl(user.profile_picture)}
                                         alt={user.username}
                                     />
-                                    <AvatarFallback className="text-2xl">
+                                    <AvatarFallback className="text-xl bg-violet-100 text-violet-800">
                                         {user.first_name && user.last_name
                                             ? `${user.first_name[0]}${user.last_name[0]}`
                                             : user.username.substring(0, 2).toUpperCase()}
@@ -252,13 +281,21 @@ export default function EditUserPage() {
                                         accept="image/*"
                                         onChange={handleFileChange}
                                         disabled={isLoading}
+                                        className="cursor-pointer"
                                     />
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                        {previewUrl && previewUrl !== user.profile_picture
-                                            ? 'New picture selected'
-                                            : user.profile_picture
-                                                ? 'Current picture'
-                                                : 'No picture uploaded'}
+                                    <p className="text-sm text-muted-foreground mt-2 flex items-center gap-1">
+                                        {previewUrl && previewUrl !== user.profile_picture ? (
+                                            <>
+                                                <svg className="h-4 w-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                                <span className="text-green-600">New picture selected</span>
+                                            </>
+                                        ) : user.profile_picture ? (
+                                            'Current picture'
+                                        ) : (
+                                            'No picture uploaded'
+                                        )}
                                     </p>
                                 </div>
                             </div>
@@ -333,23 +370,33 @@ export default function EditUserPage() {
                             </div>
                         </div>
 
-                        <div className="flex gap-4 justify-end pt-4 border-t">
+                        <div className="flex gap-4 justify-end pt-6 border-t mt-6">
                             <Button
                                 type="button"
                                 variant="outline"
                                 onClick={() => navigate('/admin/users')}
                                 disabled={isLoading}
+                                className="border-gray-300 hover:bg-gray-50"
                             >
                                 Cancel
                             </Button>
-                            <Button type="submit" disabled={isLoading}>
+                            <Button
+                                type="submit"
+                                disabled={isLoading}
+                                className="bg-violet-800 hover:bg-violet-900 text-white shadow-md hover:shadow-lg transition-all"
+                            >
                                 {isLoading ? (
                                     <>
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Updating...
+                                        Updating User...
                                     </>
                                 ) : (
-                                    'Update User'
+                                    <>
+                                        <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        Save Changes
+                                    </>
                                 )}
                             </Button>
                         </div>

@@ -11,13 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import { projectService, type CreateProjectData } from '@/api/project.service';
 import toast from 'react-hot-toast';
@@ -34,7 +27,6 @@ export function CreateProjectDialog({
     onSuccess,
 }: CreateProjectDialogProps) {
     const [isLoading, setIsLoading] = useState(false);
-    const [status, setStatus] = useState<'in_progress' | 'completed' | 'on_hold'>('in_progress');
 
     const {
         register,
@@ -48,7 +40,6 @@ export function CreateProjectDialog({
         try {
             await projectService.createProject({
                 ...data,
-                status,
             });
             toast.success('Project created successfully');
             reset();
@@ -123,20 +114,6 @@ export function CreateProjectDialog({
                                 disabled={isLoading}
                             />
                         </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="status">Status</Label>
-                        <Select value={status} onValueChange={(value: any) => setStatus(value)}>
-                            <SelectTrigger>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="in_progress">In Progress</SelectItem>
-                                <SelectItem value="on_hold">On Hold</SelectItem>
-                                <SelectItem value="completed">Completed</SelectItem>
-                            </SelectContent>
-                        </Select>
                     </div>
 
                     <div className="flex gap-4 justify-end pt-4">

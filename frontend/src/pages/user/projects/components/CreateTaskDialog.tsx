@@ -130,33 +130,34 @@ export function CreateTaskDialog({ open, onOpenChange, projectId, onSuccess }: C
                                 rows={3}
                             />
                         </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="assigned_to">Assign To</Label>
-                            <Select
-                                value={formData.assigned_to || 'unassigned'}
-                                onValueChange={(value) => setFormData({ ...formData, assigned_to: value === 'unassigned' ? '' : value })}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select member" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="unassigned">Unassigned</SelectItem>
-                                    {members.map((member) => (
-                                        <SelectItem key={member.id} value={member.id.toString()}>
-                                            {member.first_name} {member.last_name} ({member.username})
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
+
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="assigned_to">Assign To</Label>
+                                <Select
+                                    value={formData.assigned_to || 'unassigned'}
+                                    onValueChange={(value) => setFormData({ ...formData, assigned_to: value === 'unassigned' ? '' : value })}
+                                >
+                                    <SelectTrigger className='w-full'>
+                                        <SelectValue placeholder="Select member" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                                        {members.map((member) => (
+                                            <SelectItem key={member.id} value={member.id.toString()}>
+                                                {member.first_name} {member.last_name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="priority">Priority</Label>
                                 <Select
                                     value={formData.priority}
                                     onValueChange={(value) => setFormData({ ...formData, priority: value })}
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger className='w-full'>
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -172,7 +173,7 @@ export function CreateTaskDialog({ open, onOpenChange, projectId, onSuccess }: C
                                     value={formData.status}
                                     onValueChange={(value) => setFormData({ ...formData, status: value })}
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger className='w-full'>
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -197,7 +198,7 @@ export function CreateTaskDialog({ open, onOpenChange, projectId, onSuccess }: C
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={loading}>
+                        <Button type="submit" disabled={loading} className='bg-violet-800 hover:bg-violet-700'>
                             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Create Task
                         </Button>

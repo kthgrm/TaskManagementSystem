@@ -10,6 +10,7 @@ import { projectService, type Project } from '@/api/project.service';
 import { userService } from '@/api/user.service';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProjectRefresh } from '@/contexts/ProjectContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -18,6 +19,7 @@ export default function ProjectSettingsPage() {
     const { projectId } = useParams<{ projectId: string }>();
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { triggerProjectRefresh } = useProjectRefresh();
     const [project, setProject] = useState<Project | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -30,7 +32,6 @@ export default function ProjectSettingsPage() {
         description: '',
         start_date: '',
         end_date: '',
-        status: 'in_progress',
     });
 
     useEffect(() => {
@@ -58,7 +59,6 @@ export default function ProjectSettingsPage() {
                 description: data.description || '',
                 start_date: data.start_date || '',
                 end_date: data.end_date || '',
-                status: data.status,
             });
         } catch (error: any) {
             console.error('Error loading project:', error);
@@ -87,7 +87,6 @@ export default function ProjectSettingsPage() {
             const data: any = {
                 title: formData.title,
                 description: formData.description,
-                status: formData.status,
             };
 
             if (formData.start_date) data.start_date = formData.start_date;
@@ -95,6 +94,7 @@ export default function ProjectSettingsPage() {
 
             await projectService.updateProject(parseInt(projectId), data);
             toast.success('Project updated successfully');
+            triggerProjectRefresh(); // Refresh sidebar projects
             loadProject();
         } catch (error: any) {
             console.error('Error updating project:', error);
@@ -123,6 +123,7 @@ export default function ProjectSettingsPage() {
         try {
             await projectService.deleteProject(parseInt(projectId));
             toast.success('Project deleted successfully');
+            triggerProjectRefresh(); // Refresh sidebar projects
             navigate('/user/projects');
         } catch (error: any) {
             console.error('Error deleting project:', error);
@@ -140,6 +141,7 @@ export default function ProjectSettingsPage() {
             await projectService.addMember(parseInt(projectId), parseInt(selectedUser));
             toast.success('Member added successfully');
             setSelectedUser('');
+            triggerProjectRefresh(); // Refresh sidebar projects
             loadProject();
         } catch (error: any) {
             console.error('Error adding member:', error);
@@ -157,6 +159,7 @@ export default function ProjectSettingsPage() {
         try {
             await projectService.removeMember(parseInt(projectId), userId);
             toast.success('Member removed successfully');
+            triggerProjectRefresh(); // Refresh sidebar projects
             loadProject();
         } catch (error: any) {
             console.error('Error removing member:', error);

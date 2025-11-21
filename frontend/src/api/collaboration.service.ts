@@ -117,18 +117,41 @@ export const activityService = {
     // Get project activities
     getProjectActivities: async (projectId: number): Promise<ActivityLog[]> => {
         const response = await api.get(`/activities/?project=${projectId}`);
-        return response.data;
+        return response.data.results || response.data;
     },
 
     // Get task activities
     getTaskActivities: async (taskId: number): Promise<ActivityLog[]> => {
         const response = await api.get(`/activities/?task=${taskId}`);
-        return response.data;
+        return response.data.results || response.data;
     },
 
     // Get all user activities
     getAllActivities: async (): Promise<ActivityLog[]> => {
-        const response = await api.get('/activities/');
-        return response.data;
+        let allActivities: ActivityLog[] = [];
+        let nextUrl: string | null = '/activities/';
+        
+        while (nextUrl) {
+            const response: any = await api.get(nextUrl);
+            const data: any = response.data;
+            
+            // Handle paginated response
+            if (data.results) {
+                allActivities = [...allActivities, ...data.results];
+                // Extract just the query params from the next URL
+                if (data.next) {
+                    const url = new URL(data.next);
+                    nextUrl = url.pathname.replace('/api', '') + url.search;
+                } else {
+                    nextUrl = null;
+                }
+            } else {
+                // Handle non-paginated response
+                allActivities = data;
+                nextUrl = null;
+            }
+        }
+        
+        return allActivities;
     },
 };

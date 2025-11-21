@@ -29,6 +29,7 @@ import { Link } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
 import { LogoutConfirmation } from "@/components/LogoutConfirmation"
 import type { User } from "@/types/auth.types"
+import { getMediaUrl } from "@/lib/utils"
 
 export function NavUser({
     user,
@@ -46,7 +47,7 @@ export function NavUser({
     if (!user) return null;
 
     const displayName = user.first_name || user.username;
-    const avatarUrl = user.profile_picture || "";
+    const avatarUrl = getMediaUrl(user.profile_picture);
     const initials = displayName.substring(0, 2).toUpperCase();
 
     return (

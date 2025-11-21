@@ -1,8 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { SortableHeader } from "@/components/data-table";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Edit, Eye, MoreHorizontal, Trash2, UserCheck, UserX } from "lucide-react";
+import { Edit, Eye, MoreHorizontal, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { User } from "@/api/user.service";
 
@@ -14,11 +15,11 @@ interface ColumnActions {
 export const createColumns = (actions: ColumnActions): ColumnDef<User>[] => [
     {
         accessorKey: 'username',
-        header: 'Username',
+        header: ({ column }) => <SortableHeader column={column}>Username</SortableHeader>,
     },
     {
         accessorKey: 'full_name',
-        header: 'Full Name',
+        header: ({ column }) => <SortableHeader column={column}>Full Name</SortableHeader>,
         cell: ({ row }) => {
             const fullName = row.getValue('full_name') as string;
             return fullName || '-';
@@ -26,51 +27,36 @@ export const createColumns = (actions: ColumnActions): ColumnDef<User>[] => [
     },
     {
         accessorKey: 'email',
-        header: 'Email',
+        header: ({ column }) => <SortableHeader column={column}>Email</SortableHeader>,
     },
     {
         accessorKey: 'role',
-        header: 'Role',
+        header: ({ column }) => <SortableHeader column={column}>Role</SortableHeader>,
         cell: ({ row }) => {
             const role = row.getValue('role') as string;
             return (
-                <Badge variant={role === 'admin' ? 'default' : 'secondary'}>
+                <Badge variant={role === 'admin' ? 'default' : 'secondary'} className={role === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}>
                     {role.toUpperCase()}
                 </Badge>
             );
         },
     },
     {
-        accessorKey: 'status',
-        header: 'Status',
+        accessorKey: 'is_active',
+        header: ({ column }) => <SortableHeader column={column}>Status</SortableHeader>,
         cell: ({ row }) => {
-            const status = row.getValue('status') as string;
+            const user = row.original;
+            const isActive = user.is_active ?? (user.status === 'active');
             return (
-                <Badge variant={status === 'active' ? 'default' : 'outline'}>
-                    {status}
+                <Badge variant={isActive ? 'default' : 'destructive'} className={isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                    {isActive ? 'Active' : 'Inactive'}
                 </Badge>
             );
-        },
-    },
-    {
-        accessorKey: 'project_count',
-        header: 'Projects',
-        cell: ({ row }) => {
-            const count = row.getValue('project_count') as number;
-            return count || 0;
-        },
-    },
-    {
-        accessorKey: 'task_count',
-        header: 'Tasks',
-        cell: ({ row }) => {
-            const count = row.getValue('task_count') as number;
-            return count || 0;
-        },
+        }
     },
     {
         accessorKey: 'date_joined',
-        header: 'Date Joined',
+        header: ({ column }) => <SortableHeader column={column}>Date Joined</SortableHeader>,
         cell: ({ row }) => {
             const date = row.getValue('date_joined') as string;
             return new Date(date).toLocaleDateString();
@@ -78,9 +64,9 @@ export const createColumns = (actions: ColumnActions): ColumnDef<User>[] => [
     },
     {
         id: 'actions',
+        header: 'Actions',
         cell: ({ row }) => {
             const user = row.original;
-            const isActive = user.status === 'active' || user.is_active;
             const navigate = useNavigate();
 
             return (
@@ -100,19 +86,6 @@ export const createColumns = (actions: ColumnActions): ColumnDef<User>[] => [
                         <DropdownMenuItem onClick={() => navigate(`/admin/users/${user.id}/edit`)}>
                             <Edit className="mr-2 h-4 w-4" />
                             Edit user
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => actions.onToggleStatus(user)}>
-                            {isActive ? (
-                                <>
-                                    <UserX className="mr-2 h-4 w-4" />
-                                    Deactivate
-                                </>
-                            ) : (
-                                <>
-                                    <UserCheck className="mr-2 h-4 w-4" />
-                                    Activate
-                                </>
-                            )}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                             className="text-destructive"

@@ -23,6 +23,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { NavHead } from "./nav-head"
 import { NavProjects } from "./nav-projects"
 import { projectService, type Project } from "@/api/project.service"
+import { useProjectRefresh } from "@/contexts/ProjectContext"
 
 // Admin navigation items - full system access
 const adminNavItems = [
@@ -39,10 +40,12 @@ const userNavItems = [
   { title: "Home", icon: LayoutDashboard, url: "/user/dashboard" },
   { title: "My Tasks", icon: ListChecks, url: "/user/tasks" },
   { title: "My Projects", icon: FolderKanban, url: "/user/projects" },
+  { title: "Reports", icon: BarChart3, url: "/user/reports" },
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth();
+  const { refreshTrigger } = useProjectRefresh();
   const [projects, setProjects] = React.useState<Project[]>([]);
 
   // Determine navigation items based on user role
@@ -56,7 +59,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     if (user?.role === 'user') {
       loadProjects();
     }
-  }, [user]);
+  }, [user, refreshTrigger]);
 
   const loadProjects = async () => {
     try {

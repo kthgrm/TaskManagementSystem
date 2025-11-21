@@ -45,8 +45,14 @@ export function Comments({ taskId }: CommentsProps) {
         try {
             const response: any = await commentService.getTaskComments(taskId);
             // Handle paginated response - API returns { results: [], count: n }
-            const data = Array.isArray(response) ? response : (response.results || []);
-            setComments(data);
+            const rawData = Array.isArray(response) ? response : (response.results || []);
+
+            // Remove duplicates based on comment ID (just in case)
+            const uniqueComments = rawData.filter((comment: Comment, index: number, self: Comment[]) =>
+                index === self.findIndex((c) => c.id === comment.id)
+            );
+
+            setComments(uniqueComments);
         } catch (error) {
             console.error('Error loading comments:', error);
             toast.error('Failed to load comments');
@@ -308,9 +314,11 @@ export function Comments({ taskId }: CommentsProps) {
                         )}
                         {comment.replies && comment.replies.length > 0 && (
                             <div className="mt-2">
-                                {comment.replies.map((reply) => (
-                                    <CommentItem key={reply.id} comment={reply} isReply />
-                                ))}
+                                {comment.replies
+                                    .filter((reply, index, self) => index === self.findIndex(r => r.id === reply.id))
+                                    .map((reply) => (
+                                        <CommentItem key={`reply-${reply.id}`} comment={reply} isReply />
+                                    ))}
                             </div>
                         )}
                     </div>
@@ -373,11 +381,13 @@ export function Comments({ taskId }: CommentsProps) {
                             </div>
                         )}
                     </div>
-                    <Button type="submit" disabled={submitting || !newComment.trim()}>
-                        {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        <Send className="mr-2 h-4 w-4" />
-                        Comment
-                    </Button>
+                    <div className='flex'>
+                        <Button type="submit" disabled={submitting || !newComment.trim()} className='ml-auto bg-violet-800 hover:bg-violet-700'>
+                            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            <Send className="mr-2 h-4 w-4" />
+                            Comment
+                        </Button>
+                    </div>
                 </form>
 
                 <div className="space-y-1">

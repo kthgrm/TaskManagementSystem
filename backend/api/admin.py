@@ -20,15 +20,15 @@ class UserAdmin(BaseUserAdmin):
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ['title', 'status', 'created_by', 'start_date', 'end_date', 'created_at']
-    list_filter = ['status', 'created_at', 'start_date', 'end_date']
+    list_display = ['title', 'created_by', 'start_date', 'end_date', 'created_at']
+    list_filter = ['created_at', 'start_date', 'end_date']
     search_fields = ['title', 'description', 'created_by__username']
     filter_horizontal = ['members']
     readonly_fields = ['created_at', 'updated_at']
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('title', 'description', 'status')
+            'fields': ('title', 'description')
         }),
         ('Dates', {
             'fields': ('start_date', 'end_date')

@@ -139,14 +139,29 @@ export default function Profile() {
     };
 
     const handleDeleteAccount = async () => {
+        const password = window.prompt('Please enter your password to confirm account deletion:');
+
+        if (!password) {
+            return; // User cancelled
+        }
+
         if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
             try {
-                await authService.deleteAccount();
-                toast.success('Account deleted successfully');
+                const response = await authService.deleteAccount(password);
+                toast.success(response.message || 'Account deleted successfully');
                 await logout();
                 navigate('/login');
-            } catch (error) {
-                toast.error('Failed to delete account');
+            } catch (error: any) {
+                const errors = error.response?.data;
+                if (errors) {
+                    // Display all error messages
+                    Object.entries(errors).forEach(([, messages]: [string, any]) => {
+                        const message = Array.isArray(messages) ? messages[0] : messages;
+                        toast.error(message);
+                    });
+                } else {
+                    toast.error('Failed to delete account');
+                }
             }
         }
     };

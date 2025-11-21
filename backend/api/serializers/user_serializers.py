@@ -56,7 +56,9 @@ class UserLoginSerializer(serializers.Serializer):
         password = data.get('password')
 
         if not username_or_email or not password:
-            raise serializers.ValidationError("Must include username/email and password")
+            raise serializers.ValidationError({
+                'error': ['Must include username/email and password']
+            })
 
         # Try to find user by username or email
         user = None
@@ -74,10 +76,14 @@ class UserLoginSerializer(serializers.Serializer):
         
         if user:
             if not user.is_active:
-                raise serializers.ValidationError("User account is disabled")
+                raise serializers.ValidationError({
+                    'error': ['User account is disabled']
+                })
             data['user'] = user
         else:
-            raise serializers.ValidationError("Invalid credentials. Please check your username/email and password.")
+            raise serializers.ValidationError({
+                'error': ['Invalid credentials. Please check your username/email and password.']
+            })
         
         return data
 

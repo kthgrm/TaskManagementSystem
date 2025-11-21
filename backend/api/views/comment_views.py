@@ -24,17 +24,16 @@ class CommentViewSet(viewsets.ModelViewSet):
                 Q(task__project__members=user) | Q(task__project__created_by=user)
             )
         
-        # Filter by task if provided
-        task_id = self.request.query_params.get('task', None)
-        if task_id:
-            queryset = queryset.filter(task_id=task_id)
-        
-        # Only return top-level comments for list action (replies are nested in serializer)
-        # Don't apply this filter for detail actions (retrieve, update, destroy)
+        # Filter by task if provided (only for list action)
         if self.action == 'list':
+            task_id = self.request.query_params.get('task', None)
+            if task_id:
+                queryset = queryset.filter(task_id=task_id)
+            # Only return top-level comments for list action (replies are nested in serializer)
             queryset = queryset.filter(parent__isnull=True)
         
-        return queryset.select_related('user', 'task').prefetch_related('replies__user')
+        # Ensure we return distinct results to avoid duplicates from joins
+        return queryset.select_related('user', 'task').prefetch_related('replies__user').distinct()
 
     def perform_create(self, serializer):
         comment = serializer.save(user=self.request.user)
@@ -64,6 +63,25 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         serializer.save(is_edited=True)
+    
+    def perform_destroy(self, instance):
+        """Override destroy to add permission check and logging"""
+        # Check if user owns the comment or is admin
+        if instance.user != self.request.user and self.request.user.role != 'admin':
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("You can only delete your own comments.")
+        
+        # Log the deletion
+        ActivityLog.objects.create(
+            user=self.request.user,
+            action_type='deleted',
+            task=instance.task,
+            project=instance.task.project,
+            description=f"deleted a comment on task: {instance.task.title}"
+        )
+        
+        # Delete the comment (CASCADE will handle replies)
+        instance.delete()
 
     def _process_mentions(self, comment):
         """Process @mentions in comment content and create notifications"""

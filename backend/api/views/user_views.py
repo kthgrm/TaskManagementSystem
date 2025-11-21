@@ -239,3 +239,80 @@ class UserViewSet(viewsets.ModelViewSet):
         users = User.objects.filter(is_active=True, role='user')
         serializer = UserSerializer(users, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['post'], url_path='change-password')
+    def change_password(self, request):
+        """Change user password"""
+        user = request.user
+        old_password = request.data.get('old_password')
+        new_password = request.data.get('new_password')
+        new_password_confirm = request.data.get('new_password_confirm')
+
+        # Validate inputs
+        if not old_password or not new_password or not new_password_confirm:
+            return Response({
+                'error': ['All fields are required']
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check old password
+        if not user.check_password(old_password):
+            return Response({
+                'old_password': ['Current password is incorrect']
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check new passwords match
+        if new_password != new_password_confirm:
+            return Response({
+                'new_password_confirm': ['Passwords do not match']
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Set new password
+        user.set_password(new_password)
+        user.save()
+
+        # Generate new token after password change
+        from rest_framework.authtoken.models import Token
+        Token.objects.filter(user=user).delete()
+        token = Token.objects.create(user=user)
+
+        return Response({
+            'message': 'Password changed successfully',
+            'token': token.key
+        })
+
+    @action(detail=False, methods=['delete'], url_path='delete-account')
+    def delete_account(self, request):
+        """Delete user's own account with password confirmation"""
+        user = request.user
+        password = request.data.get('password')
+
+        # Require password confirmation
+        if not password:
+            return Response({
+                'password': ['Password is required to delete your account']
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Verify password
+        if not user.check_password(password):
+            return Response({
+                'password': ['Invalid credentials. Please check your username/email and password.']
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if user has active projects or tasks
+        created_projects = Project.objects.filter(created_by=user).count()
+        
+        if created_projects > 0:
+            return Response({
+                'error': f'Cannot delete account. You have {created_projects} active projects. Please transfer ownership or delete them first.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Delete the account
+        username = user.username
+        user.delete()
+        
+        # Logout
+        logout(request)
+
+        return Response({
+            'message': f'Account {username} has been successfully deleted'
+        }, status=status.HTTP_200_OK)

@@ -32,7 +32,7 @@ const adminNavItems = [
   { title: "Projects", icon: FolderKanban, url: "/admin/projects" },
   { title: "Tasks", icon: ClipboardList, url: "/admin/tasks" },
   { title: "Reports", icon: FileText, url: "/admin/reports" },
-  { title: "Audit Trail", icon: BarChart3, url: "/admin/audit-trail" },
+  { title: "Activity Log", icon: BarChart3, url: "/admin/activity-log" },
 ]
 
 // User navigation items - limited to own tasks and projects

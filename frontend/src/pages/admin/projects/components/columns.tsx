@@ -33,7 +33,7 @@ export const createColumns = (actions: ColumnActions): ColumnDef<Project>[] => [
     },
     {
         accessorKey: 'created_by',
-        header: ({ column }) => <SortableHeader column={column}>Created By</SortableHeader>,
+        header: ({ column }) => <SortableHeader column={column}>Owner</SortableHeader>,
         cell: ({ row }) => {
             const creator = row.original.created_by_details;
             return creator ? `${creator.first_name} ${creator.last_name}` : 'N/A';

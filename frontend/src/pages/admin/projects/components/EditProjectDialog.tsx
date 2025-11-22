@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { projectService, type Project } from '@/api/project.service';
 import { userService, type User } from '@/api/user.service';
 import toast from 'react-hot-toast';
@@ -27,6 +28,7 @@ export function EditProjectDialog({ open, onOpenChange, project, onSuccess }: Ed
     const [formData, setFormData] = useState({
         title: project.title,
         description: project.description || '',
+        created_by: project.created_by || 0,
     });
 
     useEffect(() => {
@@ -34,6 +36,7 @@ export function EditProjectDialog({ open, onOpenChange, project, onSuccess }: Ed
             setFormData({
                 title: project.title,
                 description: project.description || '',
+                created_by: project.created_by || 0,
             });
             loadUsers();
         }
@@ -59,11 +62,18 @@ export function EditProjectDialog({ open, onOpenChange, project, onSuccess }: Ed
         setLoading(true);
 
         try {
-            await projectService.updateProject(project.id, {
+            const projectData: any = {
                 title: formData.title,
                 description: formData.description,
                 members: selectedMembers,
-            });
+            };
+
+            // Include created_by if it has changed
+            if (formData.created_by > 0) {
+                projectData.created_by = formData.created_by;
+            }
+
+            await projectService.updateProject(project.id, projectData);
             toast.success('Project updated successfully');
             onSuccess();
         } catch (error: any) {
@@ -112,6 +122,25 @@ export function EditProjectDialog({ open, onOpenChange, project, onSuccess }: Ed
                                 className="border-violet-200 focus:border-violet-800 resize-none"
                                 rows={4}
                             />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="created_by" className="text-base font-semibold">Project Owner</Label>
+                            <Select
+                                value={formData.created_by.toString()}
+                                onValueChange={(value) => setFormData({ ...formData, created_by: parseInt(value) })}
+                            >
+                                <SelectTrigger className="border-violet-200 focus:border-violet-800 w-full">
+                                    <SelectValue placeholder="Select project owner" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {users.map(user => (
+                                        <SelectItem key={user.id} value={user.id.toString()}>
+                                            {user.first_name} {user.last_name} (@{user.username})
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">Change the project owner if needed</p>
                         </div>
                         <div className="grid gap-2">
                             <Label className="text-base font-semibold">Team Members</Label>

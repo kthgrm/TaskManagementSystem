@@ -48,7 +48,7 @@ export default function AuditTrailPage() {
         return (
             <div className="space-y-6">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Audit Trail</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Activity Log</h1>
                     <p className="text-muted-foreground">
                         Track all system activities and changes
                     </p>
@@ -64,7 +64,7 @@ export default function AuditTrailPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Audit Trail</h1>
+                <h1 className="text-3xl font-bold tracking-tight">Activity Log</h1>
                 <p className="text-muted-foreground">
                     Track all system activities and changes
                 </p>

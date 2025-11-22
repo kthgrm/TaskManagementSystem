@@ -1,14 +1,16 @@
 import type { Task } from '@/api/task.service';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useState, useMemo } from 'react';
 import { EditTaskDialog } from './EditTaskDialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ChevronDown, MessageCircleMore } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ChevronDown, MessageCircleMore, Trash2, UserPlus, Flag, CheckCircle2 } from 'lucide-react';
 import { taskService } from '@/api/task.service';
 import toast from 'react-hot-toast';
 import { getMediaUrl } from '@/lib/utils';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface ListViewProps {
     tasks: Task[];
@@ -24,6 +26,8 @@ export function ListView({ tasks, onTaskUpdate, groupBy, projectMembers = [] }: 
     const [editValue, setEditValue] = useState<string>('');
     const [originalValue, setOriginalValue] = useState<string>('');
     const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+    const [selectedTaskIds, setSelectedTaskIds] = useState<Set<number>>(new Set());
+    const [isBulkUpdating, setIsBulkUpdating] = useState(false);
 
     // Group tasks based on groupBy prop
     const groupedTasks = useMemo(() => {
@@ -199,6 +203,94 @@ export function ListView({ tasks, onTaskUpdate, groupBy, projectMembers = [] }: 
         }
     };
 
+    const toggleTaskSelection = (taskId: number) => {
+        const newSelection = new Set(selectedTaskIds);
+        if (newSelection.has(taskId)) {
+            newSelection.delete(taskId);
+        } else {
+            newSelection.add(taskId);
+        }
+        setSelectedTaskIds(newSelection);
+    };
+
+    const toggleGroupSelection = (groupTasks: Task[]) => {
+        const groupTaskIds = groupTasks.map(t => t.id);
+        const allSelected = groupTaskIds.every(id => selectedTaskIds.has(id));
+        const newSelection = new Set(selectedTaskIds);
+
+        if (allSelected) {
+            groupTaskIds.forEach(id => newSelection.delete(id));
+        } else {
+            groupTaskIds.forEach(id => newSelection.add(id));
+        }
+        setSelectedTaskIds(newSelection);
+    };
+
+    const clearSelection = () => {
+        setSelectedTaskIds(new Set());
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedTaskIds.size === 0) return;
+
+        if (!window.confirm(`Delete ${selectedTaskIds.size} task(s)?`)) return;
+
+        setIsBulkUpdating(true);
+        try {
+            await Promise.all(
+                Array.from(selectedTaskIds).map(id => taskService.deleteTask(id))
+            );
+            toast.success(`Deleted ${selectedTaskIds.size} task(s)`);
+            clearSelection();
+            onTaskUpdate();
+        } catch (error) {
+            console.error('Error deleting tasks:', error);
+            toast.error('Failed to delete some tasks');
+        } finally {
+            setIsBulkUpdating(false);
+        }
+    };
+
+    const handleBulkUpdate = async (field: string, value: any) => {
+        if (selectedTaskIds.size === 0) return;
+
+        setIsBulkUpdating(true);
+        try {
+            const selectedTasks = tasks.filter(t => selectedTaskIds.has(t.id));
+
+            await Promise.all(
+                selectedTasks.map(task => {
+                    const updates: any = {
+                        title: task.title,
+                        description: task.description,
+                        project: task.project,
+                        assigned_to: task.assigned_to,
+                        priority: task.priority,
+                        status: task.status,
+                        due_date: task.due_date || undefined,
+                    };
+
+                    if (field === 'assigned_to') {
+                        updates[field] = value === 'unassigned' ? null : parseInt(value);
+                    } else {
+                        updates[field] = value;
+                    }
+
+                    return taskService.updateTask(task.id, updates);
+                })
+            );
+
+            toast.success(`Updated ${selectedTaskIds.size} task(s)`);
+            clearSelection();
+            onTaskUpdate();
+        } catch (error) {
+            console.error('Error updating tasks:', error);
+            toast.error('Failed to update some tasks');
+        } finally {
+            setIsBulkUpdating(false);
+        }
+    };
+
     const TaskRow = ({ task }: { task: Task }) => {
         const isEditingTitle = editingCell?.taskId === task.id && editingCell?.field === 'title';
         const isEditingDescription = editingCell?.taskId === task.id && editingCell?.field === 'description';
@@ -208,7 +300,11 @@ export function ListView({ tasks, onTaskUpdate, groupBy, projectMembers = [] }: 
             <tr className="border-b hover:bg-muted/30 transition-colors group">
                 {/* Checkbox */}
                 <td className="py-3 px-4 w-[5%]">
-                    <input type="checkbox" className="rounded" onClick={(e) => e.stopPropagation()} />
+                    <Checkbox
+                        checked={selectedTaskIds.has(task.id)}
+                        onCheckedChange={() => toggleTaskSelection(task.id)}
+                        onClick={(e) => e.stopPropagation()}
+                    />
                 </td>
 
                 {/* Task Title */}
@@ -393,18 +489,32 @@ export function ListView({ tasks, onTaskUpdate, groupBy, projectMembers = [] }: 
         if (tasks.length === 0) return null;
 
         const isCollapsed = collapsedGroups.has(label);
+        const groupTaskIds = tasks.map(t => t.id);
+        const selectedInGroup = groupTaskIds.filter(id => selectedTaskIds.has(id)).length;
+        const allSelected = selectedInGroup === groupTaskIds.length && groupTaskIds.length > 0;
+        const someSelected = selectedInGroup > 0 && selectedInGroup < groupTaskIds.length;
 
         return (
             <div className="mb-4">
                 {/* Group Header */}
                 <div
-                    className={`bg-muted/30 border-l-4 ${color} px-4 py-2 rounded-sm mb-1 cursor-pointer hover:bg-muted/50 transition-colors`}
-                    onClick={() => toggleGroup(label)}
+                    className={`bg-muted/30 border-l-4 ${color} px-4 py-2 rounded-sm mb-1 hover:bg-muted/50 transition-colors`}
                 >
                     <div className="flex items-center gap-2">
-                        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isCollapsed ? '-rotate-90' : ''}`} />
-                        <span className="font-semibold text-sm text-purple-600">{label}</span>
-                        <span className="text-xs text-muted-foreground">({tasks.length})</span>
+                        <Checkbox
+                            checked={allSelected || someSelected}
+                            onCheckedChange={() => toggleGroupSelection(tasks)}
+                            onClick={(e) => e.stopPropagation()}
+                            className={someSelected && !allSelected ? 'opacity-50' : ''}
+                        />
+                        <div className="flex items-center gap-2 cursor-pointer flex-1" onClick={() => toggleGroup(label)}>
+                            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isCollapsed ? '-rotate-90' : ''}`} />
+                            <span className="font-semibold text-sm text-purple-600">{label}</span>
+                            <span className="text-xs text-muted-foreground">({tasks.length})</span>
+                            {selectedInGroup > 0 && (
+                                <span className="text-xs text-purple-600 font-medium">• {selectedInGroup} selected</span>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -456,6 +566,81 @@ export function ListView({ tasks, onTaskUpdate, groupBy, projectMembers = [] }: 
 
     return (
         <>
+            {/* Bulk Actions Toolbar */}
+            {selectedTaskIds.size > 0 && (
+                <div className="mb-4 p-3 bg-purple-50 border border-purple-200/50 rounded-lg flex items-center gap-3">
+                    <span className="text-sm font-medium text-purple-900">
+                        {selectedTaskIds.size} task{selectedTaskIds.size !== 1 ? 's' : ''} selected
+                    </span>
+                    <div className="flex-1" />
+
+                    {/* Bulk Status Change */}
+                    <Select onValueChange={(value) => handleBulkUpdate('status', value)} disabled={isBulkUpdating}>
+                        <SelectTrigger className="h-8">
+                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                            <SelectValue placeholder="Set Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="todo">To Do</SelectItem>
+                            <SelectItem value="in_progress">In Progress</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    {/* Bulk Priority Change */}
+                    <Select onValueChange={(value) => handleBulkUpdate('priority', value)} disabled={isBulkUpdating}>
+                        <SelectTrigger className="h-8">
+                            <Flag className="h-4 w-4 mr-2" />
+                            <SelectValue placeholder="Set Priority" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="low">Low</SelectItem>
+                            <SelectItem value="medium">Medium</SelectItem>
+                            <SelectItem value="high">High</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    {/* Bulk Assignee Change */}
+                    <Select onValueChange={(value) => handleBulkUpdate('assigned_to', value)} disabled={isBulkUpdating}>
+                        <SelectTrigger className="h-8">
+                            <UserPlus className="h-4 w-4 mr-2" />
+                            <SelectValue placeholder="Assign To" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="unassigned">Unassigned</SelectItem>
+                            {projectMembers.map((member) => (
+                                <SelectItem key={member.id} value={member.id.toString()}>
+                                    {member.first_name} {member.last_name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    {/* Bulk Delete */}
+                    <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleBulkDelete}
+                        disabled={isBulkUpdating}
+                        className="h-8 bg-red-800 hover:bg-red-900"
+                    >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                    </Button>
+
+                    {/* Clear Selection */}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={clearSelection}
+                        disabled={isBulkUpdating}
+                        className="h-8"
+                    >
+                        Clear
+                    </Button>
+                </div>
+            )}
+
             <div className="space-y-4">
                 {Object.entries(groupedTasks).map(([label, groupTasks]) => (
                     <StatusGroup

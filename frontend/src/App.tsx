@@ -142,7 +142,7 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/admin/audit-trail"
+        path="/admin/activity-log"
         element={
           <ProtectedRoute allowedRoles={['admin']}>
             <AuditTrailPage />

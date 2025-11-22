@@ -17,7 +17,7 @@ import {
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { useSortable } from '@dnd-kit/sortable';
-import { GripVertical, Check, X } from 'lucide-react';
+import { GripVertical, Check, X, MessageCircleMore, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { getMediaUrl } from '@/lib/utils';
@@ -30,6 +30,7 @@ interface BoardViewProps {
 
 export function BoardView({ tasks, onTaskUpdate, projectMembers = [] }: BoardViewProps) {
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+    const [dialogTab, setDialogTab] = useState<'details' | 'comments' | 'activity'>('details');
     const [activeTask, setActiveTask] = useState<Task | null>(null);
     const [editingCard, setEditingCard] = useState<{ taskId: number; field: string } | null>(null);
     const [editValue, setEditValue] = useState<string>('');
@@ -164,6 +165,19 @@ export function BoardView({ tasks, onTaskUpdate, projectMembers = [] }: BoardVie
         }
     };
 
+    const handleDeleteTask = async (task: Task) => {
+        if (!window.confirm(`Delete task "${task.title}"?`)) return;
+
+        try {
+            await taskService.deleteTask(task.id);
+            toast.success('Task deleted');
+            onTaskUpdate();
+        } catch (error) {
+            console.error('Error deleting task:', error);
+            toast.error('Failed to delete task');
+        }
+    };
+
     const TaskCard = ({ task }: { task: Task }) => {
         const {
             attributes,
@@ -199,76 +213,15 @@ export function BoardView({ tasks, onTaskUpdate, projectMembers = [] }: BoardVie
                         <GripVertical className="h-4 w-4" />
                     </button>
                     <div className="flex-1 min-w-0">
-                        {/* Title */}
-                        {isEditingTitle ? (
-                            <div className="flex items-center gap-1 mb-1">
-                                <Input
-                                    value={editValue}
-                                    onChange={(e) => setEditValue(e.target.value)}
-                                    className="h-7 text-sm"
-                                    autoFocus
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit(task);
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                    }}
-                                />
-                                <button onClick={() => handleSaveEdit(task)} className="text-green-600 hover:text-green-700">
-                                    <Check className="h-4 w-4" />
-                                </button>
-                                <button onClick={handleCancelEdit} className="text-red-600 hover:text-red-700">
-                                    <X className="h-4 w-4" />
-                                </button>
-                            </div>
-                        ) : (
-                            <div
-                                className="font-medium text-sm mb-1 cursor-text hover:bg-gray-50 px-1 -mx-1 rounded"
-                                onDoubleClick={() => handleCardDoubleClick(task, 'title', task.title)}
-                            >
-                                {task.title}
-                            </div>
-                        )}
-
-                        {/* Description */}
-                        {isEditingDescription ? (
-                            <div className="flex items-center gap-1 mb-2">
-                                <Input
-                                    value={editValue}
-                                    onChange={(e) => setEditValue(e.target.value)}
-                                    className="h-7 text-xs"
-                                    autoFocus
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveEdit(task);
-                                        if (e.key === 'Escape') handleCancelEdit();
-                                    }}
-                                />
-                                <button onClick={() => handleSaveEdit(task)} className="text-green-600 hover:text-green-700">
-                                    <Check className="h-4 w-4" />
-                                </button>
-                                <button onClick={handleCancelEdit} className="text-red-600 hover:text-red-700">
-                                    <X className="h-4 w-4" />
-                                </button>
-                            </div>
-                        ) : (
-                            task.description && (
-                                <div
-                                    className="text-xs text-muted-foreground line-clamp-2 mb-2 cursor-text hover:bg-gray-50 px-1 -mx-1 rounded"
-                                    onDoubleClick={() => handleCardDoubleClick(task, 'description', task.description || '')}
-                                >
-                                    {task.description}
-                                </div>
-                            )
-                        )}
-
-                        <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                                {/* Due Date */}
-                                {isEditingDueDate ? (
-                                    <div className="flex items-center gap-1">
+                        <div className='flex flex-row justify-between'>
+                            <div>
+                                {/* Title */}
+                                {isEditingTitle ? (
+                                    <div className="flex items-center gap-1 mb-1">
                                         <Input
-                                            type="date"
                                             value={editValue}
                                             onChange={(e) => setEditValue(e.target.value)}
-                                            className="h-6 text-xs w-32"
+                                            className="h-7 text-sm"
                                             autoFocus
                                             onKeyDown={(e) => {
                                                 if (e.key === 'Enter') handleSaveEdit(task);
@@ -276,62 +229,62 @@ export function BoardView({ tasks, onTaskUpdate, projectMembers = [] }: BoardVie
                                             }}
                                         />
                                         <button onClick={() => handleSaveEdit(task)} className="text-green-600 hover:text-green-700">
-                                            <Check className="h-3 w-3" />
+                                            <Check className="h-4 w-4" />
                                         </button>
                                         <button onClick={handleCancelEdit} className="text-red-600 hover:text-red-700">
-                                            <X className="h-3 w-3" />
+                                            <X className="h-4 w-4" />
                                         </button>
                                     </div>
                                 ) : (
-                                    <span
-                                        className="text-xs text-muted-foreground cursor-text hover:bg-gray-50 px-1 -mx-1 rounded"
-                                        onDoubleClick={() => handleCardDoubleClick(task, 'due_date', task.due_date || '')}
+                                    <div
+                                        className="font-medium text-sm mb-1 cursor-text hover:bg-gray-50 px-1 -mx-1 rounded"
+                                        onDoubleClick={() => handleCardDoubleClick(task, 'title', task.title)}
                                     >
-                                        {task.due_date
-                                            ? new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                                            : '-'
-                                        }
-                                    </span>
+                                        {task.title}
+                                    </div>
                                 )}
 
-                                {/* Assignee */}
-                                <Select
-                                    value={task.assigned_to?.toString() || 'unassigned'}
-                                    onValueChange={(value) => handleSelectChange(task, 'assigned_to', value)}
-                                >
-                                    <SelectTrigger className="h-6 w-auto border-0 px-2 hover:bg-gray-100 rounded-full">
-                                        {task.assigned_to_details ? (
-                                            <Avatar className="h-6 w-6">
-                                                <AvatarImage src={getMediaUrl(task.assigned_to_details.profile_picture)} alt={`${task.assigned_to_details.first_name} ${task.assigned_to_details.last_name}`} />
-                                                <AvatarFallback className="text-xs bg-primary/10">
-                                                    {task.assigned_to_details.first_name[0]}
-                                                    {task.assigned_to_details.last_name[0]}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                        ) : (
-                                            <Avatar className="h-6 w-6">
-                                                <AvatarFallback className="text-xs bg-muted">?</AvatarFallback>
-                                            </Avatar>
-                                        )}
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="unassigned">Unassigned</SelectItem>
-                                        {projectMembers.map((member) => (
-                                            <SelectItem key={member.id} value={member.id.toString()}>
-                                                {member.first_name} {member.last_name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                {/* Description */}
+                                {isEditingDescription ? (
+                                    <div className="flex items-center gap-1 mb-2">
+                                        <Input
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="h-7 text-xs"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleSaveEdit(task);
+                                                if (e.key === 'Escape') handleCancelEdit();
+                                            }}
+                                        />
+                                        <button onClick={() => handleSaveEdit(task)} className="text-green-600 hover:text-green-700">
+                                            <Check className="h-4 w-4" />
+                                        </button>
+                                        <button onClick={handleCancelEdit} className="text-red-600 hover:text-red-700">
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    task.description && (
+                                        <div
+                                            className="text-xs text-muted-foreground line-clamp-2 mb-2 cursor-text hover:bg-gray-50 px-1 -mx-1 rounded"
+                                            onDoubleClick={() => handleCardDoubleClick(task, 'description', task.description || '')}
+                                        >
+                                            {task.description}
+                                        </div>
+                                    )
+                                )}
                             </div>
-
                             {/* Priority */}
                             <Select
                                 value={task.priority}
                                 onValueChange={(value) => handleSelectChange(task, 'priority', value)}
                             >
-                                <SelectTrigger className="h-auto w-auto border-0 p-0 hover:bg-gray-100 rounded-full px-2">
-                                    <div className={`w-2 h-2 rounded-full ${getPriorityBadgeColor(task.priority)}`} title={task.priority} />
+                                <SelectTrigger className="h-auto border-0 p-0 hover:bg-gray-100 rounded-full px-2 shadow-none">
+                                    <div className="flex items-center gap-1 text-xs">
+                                        <div className={`w-2 h-2 rounded-full ${getPriorityBadgeColor(task.priority)}`} />
+                                        {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                                    </div>
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="low">Low</SelectItem>
@@ -339,6 +292,92 @@ export function BoardView({ tasks, onTaskUpdate, projectMembers = [] }: BoardVie
                                     <SelectItem value="high">High</SelectItem>
                                 </SelectContent>
                             </Select>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                            {/* Assignee */}
+                            <Select
+                                value={task.assigned_to?.toString() || 'unassigned'}
+                                onValueChange={(value) => handleSelectChange(task, 'assigned_to', value)}
+                            >
+                                <SelectTrigger className="h-6 border-0 hover:bg-gray-100 rounded-full shadow-none p-0">
+                                    {task.assigned_to_details ? (
+                                        <Avatar className="h-6 w-6">
+                                            <AvatarImage src={getMediaUrl(task.assigned_to_details.profile_picture)} alt={`${task.assigned_to_details.first_name} ${task.assigned_to_details.last_name}`} />
+                                            <AvatarFallback className="text-xs bg-primary/10">
+                                                {task.assigned_to_details.first_name[0]}
+                                                {task.assigned_to_details.last_name[0]}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                    ) : (
+                                        <Avatar className="h-6 w-6">
+                                            <AvatarFallback className="text-xs bg-muted">?</AvatarFallback>
+                                        </Avatar>
+                                    )}
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                                    {projectMembers.map((member) => (
+                                        <SelectItem key={member.id} value={member.id.toString()}>
+                                            {member.first_name} {member.last_name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            {/* Due Date */}
+                            {isEditingDueDate ? (
+                                <div className="flex items-center gap-1">
+                                    <Input
+                                        type="date"
+                                        value={editValue}
+                                        onChange={(e) => setEditValue(e.target.value)}
+                                        className="h-6 text-xs w-32"
+                                        autoFocus
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleSaveEdit(task);
+                                            if (e.key === 'Escape') handleCancelEdit();
+                                        }}
+                                    />
+                                    <button onClick={() => handleSaveEdit(task)} className="text-green-600 hover:text-green-700">
+                                        <Check className="h-3 w-3" />
+                                    </button>
+                                    <button onClick={handleCancelEdit} className="text-red-600 hover:text-red-700">
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <span
+                                    className="text-xs text-muted-foreground cursor-text hover:bg-gray-50 -mx-1 rounded px-4"
+                                    onDoubleClick={() => handleCardDoubleClick(task, 'due_date', task.due_date || '')}
+                                >
+                                    {task.due_date
+                                        ? new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                                        : '-'
+                                    }
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-1 justify-end px-2">
+                            <button
+                                onClick={() => {
+                                    setDialogTab('comments');
+                                    setSelectedTask(task);
+                                }}
+                                className="p-1 text-muted-foreground hover:text-primary hover:bg-gray-100 rounded transition-colors"
+                                title="View comments"
+                            >
+                                <MessageCircleMore className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                                onClick={() => handleDeleteTask(task)}
+                                className="p-1 text-muted-foreground hover:text-destructive hover:bg-red-50 rounded transition-colors"
+                                title="Delete task"
+                            >
+                                <Trash2 className="h-3.5 w-3.5" />
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -415,12 +454,19 @@ export function BoardView({ tasks, onTaskUpdate, projectMembers = [] }: BoardVie
             {selectedTask && (
                 <EditTaskDialog
                     open={!!selectedTask}
-                    onOpenChange={(open: boolean) => !open && setSelectedTask(null)}
+                    onOpenChange={(open: boolean) => {
+                        if (!open) {
+                            setSelectedTask(null);
+                            setDialogTab('details');
+                        }
+                    }}
                     task={selectedTask}
                     onSuccess={() => {
                         onTaskUpdate();
                         setSelectedTask(null);
+                        setDialogTab('details');
                     }}
+                    defaultTab={dialogTab}
                 />
             )}
         </>

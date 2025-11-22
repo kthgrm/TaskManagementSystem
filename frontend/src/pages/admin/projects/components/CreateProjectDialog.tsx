@@ -28,6 +28,8 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
         name: '',
         description: '',
         created_by: 0,
+        start_date: '',
+        end_date: '',
     });
 
     useEffect(() => {
@@ -37,6 +39,8 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
                 name: '',
                 description: '',
                 created_by: 0,
+                start_date: '',
+                end_date: '',
             });
             setSelectedMembers([]);
         }
@@ -65,6 +69,14 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
             // Only include created_by if admin has selected a user
             if (formData.created_by > 0) {
                 projectData.created_by = formData.created_by;
+            }
+
+            // Include dates if provided
+            if (formData.start_date) {
+                projectData.start_date = formData.start_date;
+            }
+            if (formData.end_date) {
+                projectData.end_date = formData.end_date;
             }
 
             await projectService.createProject(projectData);
@@ -119,6 +131,29 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
                                 className="border-violet-200 focus:border-violet-800 resize-none"
                                 rows={4}
                             />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="start_date" className="text-base font-semibold">Start Date</Label>
+                                <Input
+                                    id="start_date"
+                                    type="date"
+                                    value={formData.start_date}
+                                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                                    className="border-violet-200 focus:border-violet-800"
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="end_date" className="text-base font-semibold">End Date</Label>
+                                <Input
+                                    id="end_date"
+                                    type="date"
+                                    value={formData.end_date}
+                                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                                    className="border-violet-200 focus:border-violet-800"
+                                    min={formData.start_date || undefined}
+                                />
+                            </div>
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="created_by" className="text-base font-semibold">Project Owner</Label>

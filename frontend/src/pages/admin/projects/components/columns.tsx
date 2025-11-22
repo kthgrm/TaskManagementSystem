@@ -53,10 +53,17 @@ export const createColumns = (actions: ColumnActions): ColumnDef<Project>[] => [
         },
     },
     {
-        accessorKey: 'created_at',
-        header: ({ column }) => <SortableHeader column={column}>Created</SortableHeader>,
+        accessorKey: 'start_date',
+        header: ({ column }) => <SortableHeader column={column}>Start Date</SortableHeader>,
         cell: ({ row }) => {
-            return new Date(row.getValue('created_at')).toLocaleDateString();
+            return new Date(row.getValue('start_date')).toLocaleDateString();
+        },
+    },
+    {
+        accessorKey: 'end_date',
+        header: ({ column }) => <SortableHeader column={column}>End Date</SortableHeader>,
+        cell: ({ row }) => {
+            return new Date(row.getValue('end_date')).toLocaleDateString();
         },
     },
     {

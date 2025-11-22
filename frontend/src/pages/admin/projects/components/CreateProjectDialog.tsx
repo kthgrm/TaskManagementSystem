@@ -103,13 +103,13 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[550px] border-t-4 border-t-violet-800">
-                <form onSubmit={handleSubmit}>
-                    <DialogHeader className="bg-linear-to-r from-violet-50 to-transparent pb-4 -mx-6 px-6 -mt-6 pt-6 mb-4 rounded-t-lg">
+            <DialogContent className="sm:max-w-[550px] border-t-4 border-t-violet-800 max-h-[90vh] p-0">
+                <form onSubmit={handleSubmit} className="flex flex-col max-h-[90vh]">
+                    <DialogHeader className="bg-linear-to-r from-violet-50 to-transparent pb-4 px-6 pt-6 mb-0 rounded-t-lg shrink-0">
                         <DialogTitle className="text-xl text-violet-800">Create New Project</DialogTitle>
                         <DialogDescription className="text-sm text-muted-foreground mt-1">Add a new project to the system</DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-4 py-2">
+                    <div className="grid gap-4 py-4 px-6 overflow-y-auto flex-1">
                         <div className="grid gap-2">
                             <Label htmlFor="name" className="text-base font-semibold">Project Name *</Label>
                             <Input
@@ -251,7 +251,7 @@ export function CreateProjectDialog({ open, onOpenChange, onSuccess }: CreatePro
                             </div>
                         </div>
                     </div>
-                    <DialogFooter className="mt-6 pt-4 border-t">
+                    <DialogFooter className="shrink-0 mt-0 pt-4 px-6 pb-6 border-t bg-white">
                         <Button
                             type="button"
                             variant="outline"

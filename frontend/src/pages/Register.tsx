@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { UserPlus, Loader2 } from 'lucide-react';
+import InputError from '@/components/ui/input-error';
 
 export default function Register() {
     const navigate = useNavigate();
@@ -19,11 +20,14 @@ export default function Register() {
         first_name: '',
         last_name: '',
     });
+    const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setErrors({});
 
         if (formData.password !== formData.password2) {
+            setErrors({ password: "Password do not match" });
             return;
         }
 
@@ -31,9 +35,11 @@ export default function Register() {
 
         try {
             await register(formData);
-            navigate('/profile');
-        } catch (error) {
-            console.error('Registration error:', error);
+            navigate('/login');
+        } catch (error: any) {
+            if (error.response && error.response.data) {
+                setErrors(error.response.data);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -101,6 +107,7 @@ export default function Register() {
                                 disabled={isLoading}
                                 autoComplete="username"
                             />
+                            <InputError message={errors.username} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="email">Email</Label>
@@ -115,6 +122,7 @@ export default function Register() {
                                 disabled={isLoading}
                                 autoComplete="email"
                             />
+                            <InputError message={errors.email} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="password">Password</Label>
@@ -129,6 +137,7 @@ export default function Register() {
                                 disabled={isLoading}
                                 autoComplete="new-password"
                             />
+                            <InputError message={errors.password} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="password2">Confirm Password</Label>

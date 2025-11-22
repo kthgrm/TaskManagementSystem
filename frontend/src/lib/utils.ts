@@ -30,3 +30,12 @@ export function getMediaUrl(relativePath: string | null | undefined): string {
 export function assetPath(path: string) {
   return `${import.meta.env.VITE_API_BASE_URL || 'localhost:8000'}${path}`;
 }
+
+export const getInitials = (name: string) => {
+        return name
+            .split(' ')
+            .map(word => word[0])
+            .join('')
+            .toUpperCase()
+            .slice(0, 2)
+    }

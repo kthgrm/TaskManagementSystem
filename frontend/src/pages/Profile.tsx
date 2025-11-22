@@ -6,9 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { User, Mail, Phone, Camera, Save, Lock, Loader2, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getMediaUrl } from '@/lib/utils';
+import InputError from '@/components/ui/input-error';
 
 export default function Profile() {
     const navigate = useNavigate();
@@ -17,6 +26,9 @@ export default function Profile() {
 
     const [isLoading, setIsLoading] = useState(false);
     const [showPasswordChange, setShowPasswordChange] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [deletePassword, setDeletePassword] = useState('');
+    const [isDeleting, setIsDeleting] = useState(false);
     const [profileData, setProfileData] = useState({
         first_name: '',
         last_name: '',
@@ -32,6 +44,8 @@ export default function Profile() {
 
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+    const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -111,27 +125,15 @@ export default function Profile() {
     const handlePasswordSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
+        setErrors({});
 
         try {
             const response = await authService.changePassword(passwordData);
-            // Update token after password change
-            localStorage.setItem('token', response.token);
-            toast.success(response.message || 'Password changed successfully');
-            setPasswordData({
-                old_password: '',
-                new_password: '',
-                new_password_confirm: '',
-            });
-            setShowPasswordChange(false);
+            toast.success(response.message || 'Password changed successfully. Please login again.');
+            navigate('/login');
         } catch (error: any) {
-            const errors = error.response?.data;
-            if (errors) {
-                Object.entries(errors).forEach(([field, messages]: [string, any]) => {
-                    const message = Array.isArray(messages) ? messages[0] : messages;
-                    toast.error(`${field}: ${message}`);
-                });
-            } else {
-                toast.error('Failed to change password');
+            if (error.response && error.response.data) {
+                setErrors(error.response.data);
             }
         } finally {
             setIsLoading(false);
@@ -139,30 +141,30 @@ export default function Profile() {
     };
 
     const handleDeleteAccount = async () => {
-        const password = window.prompt('Please enter your password to confirm account deletion:');
-
-        if (!password) {
-            return; // User cancelled
+        if (!deletePassword.trim()) {
+            toast.error('Please enter your password');
+            return;
         }
 
-        if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-            try {
-                const response = await authService.deleteAccount(password);
-                toast.success(response.message || 'Account deleted successfully');
-                await logout();
-                navigate('/login');
-            } catch (error: any) {
-                const errors = error.response?.data;
-                if (errors) {
-                    // Display all error messages
-                    Object.entries(errors).forEach(([, messages]: [string, any]) => {
-                        const message = Array.isArray(messages) ? messages[0] : messages;
-                        toast.error(message);
-                    });
-                } else {
-                    toast.error('Failed to delete account');
-                }
+        setIsDeleting(true);
+        try {
+            await authService.deleteAccount(deletePassword);
+            await logout();
+            toast.success('Account deleted successfully');
+            navigate('/login');
+        } catch (error: any) {
+            const errors = error.response?.data;
+            if (errors) {
+                // Display all error messages
+                Object.entries(errors).forEach(([, messages]: [string, any]) => {
+                    const message = Array.isArray(messages) ? messages[0] : messages;
+                    toast.error(message);
+                });
+            } else {
+                toast.error('Failed to delete account');
             }
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -331,6 +333,7 @@ export default function Profile() {
                                         required
                                     />
                                 </div>
+                                <InputError message={errors.old_password} />
                                 <div className="space-y-2">
                                     <Label htmlFor="new_password">New Password</Label>
                                     <Input
@@ -342,6 +345,7 @@ export default function Profile() {
                                         required
                                     />
                                 </div>
+                                <InputError message={errors.new_password} />
                                 <div className="space-y-2">
                                     <Label htmlFor="new_password_confirm">Confirm New Password</Label>
                                     <Input
@@ -353,6 +357,7 @@ export default function Profile() {
                                         required
                                     />
                                 </div>
+                                <InputError message={errors.new_password_confirm} />
                                 <div className="flex gap-2">
                                     <Button type="submit" disabled={isLoading}>
                                         {isLoading ? (
@@ -391,7 +396,7 @@ export default function Profile() {
                         <CardDescription>Irreversible actions for your account</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Button variant="destructive" onClick={handleDeleteAccount}>
+                        <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete Account
                         </Button>
@@ -402,6 +407,60 @@ export default function Profile() {
                     <p>Member since {new Date(user.date_joined).toLocaleDateString()}</p>
                 </div>
             </div>
+
+            {/* Delete Account Confirmation Dialog */}
+            <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete Account</DialogTitle>
+                        <DialogDescription>
+                            This action cannot be undone. This will permanently delete your account and remove all your data from our servers.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="delete-password">Enter your password to confirm</Label>
+                            <Input
+                                id="delete-password"
+                                type="password"
+                                placeholder="Your password"
+                                value={deletePassword}
+                                onChange={(e) => setDeletePassword(e.target.value)}
+                                disabled={isDeleting}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setShowDeleteDialog(false);
+                                setDeletePassword('');
+                            }}
+                            disabled={isDeleting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleDeleteAccount}
+                            disabled={isDeleting || !deletePassword.trim()}
+                        >
+                            {isDeleting ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Deleting...
+                                </>
+                            ) : (
+                                <>
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete Account
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

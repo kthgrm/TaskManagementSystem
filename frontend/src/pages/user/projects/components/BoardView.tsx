@@ -2,7 +2,7 @@ import type { Task } from '@/api/task.service';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
 import { EditTaskDialog } from './EditTaskDialog';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { taskService } from '@/api/task.service';
 import toast from 'react-hot-toast';
 import {
@@ -20,6 +20,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { GripVertical, Check, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { getMediaUrl } from '@/lib/utils';
 
 interface BoardViewProps {
     tasks: Task[];
@@ -301,6 +302,7 @@ export function BoardView({ tasks, onTaskUpdate, projectMembers = [] }: BoardVie
                                     <SelectTrigger className="h-6 w-auto border-0 px-2 hover:bg-gray-100 rounded-full">
                                         {task.assigned_to_details ? (
                                             <Avatar className="h-6 w-6">
+                                                <AvatarImage src={getMediaUrl(task.assigned_to_details.profile_picture)} alt={`${task.assigned_to_details.first_name} ${task.assigned_to_details.last_name}`} />
                                                 <AvatarFallback className="text-xs bg-primary/10">
                                                     {task.assigned_to_details.first_name[0]}
                                                     {task.assigned_to_details.last_name[0]}

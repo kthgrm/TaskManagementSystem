@@ -58,13 +58,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setToken('session'); // Session-based, no actual token
             setUser(response.user);
             localStorage.setItem('user', JSON.stringify(response.user));
-            toast.success(response.message || 'Login successful!');
+            toast.success('Login successful!');
         } catch (error: any) {
-            const errorMessage = error.response?.data?.error ||
-                error.response?.data?.non_field_errors?.[0] ||
-                error.response?.data?.detail ||
-                'Login failed. Please check your credentials.';
-            toast.error(errorMessage);
+            console.error('Login error:', error);
             throw error;
         }
     };
@@ -72,37 +68,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const register = async (data: RegisterData) => {
         try {
             const response = await authService.register(data);
-            setToken('session'); // Session-based, no actual token
-            setUser(response.user);
-            localStorage.setItem('user', JSON.stringify(response.user));
             toast.success(response.message || 'Registration successful!');
         } catch (error: any) {
-            const errors = error.response?.data;
-            if (errors) {
-                Object.entries(errors).forEach(([field, messages]: [string, any]) => {
-                    const message = Array.isArray(messages) ? messages[0] : messages;
-                    toast.error(`${field}: ${message}`);
-                });
-            } else {
-                toast.error('Registration failed. Please try again.');
-            }
+            console.error('Registration error:', error);
             throw error;
         }
     };
 
     const logout = async () => {
+        setToken(null);
+        setUser(null);
+        localStorage.removeItem('user');
+
         try {
             await authService.logout();
-            setToken(null);
-            setUser(null);
-            localStorage.removeItem('user');
             toast.success('Logged out successfully');
         } catch (error) {
-            // Still logout locally even if API call fails
-            setToken(null);
-            setUser(null);
-            localStorage.removeItem('user');
-            toast.error('Logout failed, but you have been logged out locally');
+            console.log(error);
         }
     };
 

@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useState, useEffect } from 'react';
 import { projectService, type Project } from '@/api/project.service';
 import { taskService, type Task } from '@/api/task.service';
-import { getMediaUrl } from '@/lib/utils';
+import { getInitials, getMediaUrl } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 export const UserDashboard = () => {
@@ -200,7 +200,7 @@ export const UserDashboard = () => {
                                         onClick={() => navigate(`/user/projects/${project.id}`)}
                                     >
                                         <div className="h-10 w-10 rounded-md bg-violet-500 flex items-center justify-center text-white font-semibold shrink-0">
-                                            {project.title[0].toUpperCase()}
+                                            {getInitials(project.title)}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <h4 className="font-medium truncate">{project.title}</h4>

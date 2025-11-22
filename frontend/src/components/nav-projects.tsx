@@ -1,5 +1,4 @@
 import React from "react"
-import { type LucideIcon } from "lucide-react"
 
 import {
     SidebarGroup,
@@ -9,10 +8,9 @@ import {
     SidebarMenuBadge,
     SidebarMenuButton,
     SidebarMenuItem,
-    useSidebar,
 } from "@/components/ui/sidebar"
-import { useNavigate } from "react-router-dom"
 import { Avatar } from "./ui/avatar"
+import { getInitials } from "@/lib/utils"
 
 export function NavProjects({
     items,
@@ -24,27 +22,6 @@ export function NavProjects({
         badge?: React.ReactNode
     }[]
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
-    const { isMobile } = useSidebar()
-    const navigate = useNavigate()
-    const [activeProject, setActiveProject] = React.useState(items[0])
-
-    if (!activeProject) {
-        return null
-    }
-
-    const handleProjectChange = (project: typeof items[0]) => {
-        setActiveProject(project)
-        navigate(project.url)
-    }
-
-    const getInitials = (name: string) => {
-        return name
-            .split(' ')
-            .map(word => word[0])
-            .join('')
-            .toUpperCase()
-            .slice(0, 2)
-    }
     return (
         <SidebarGroup {...props}>
             <SidebarGroupLabel>Projects</SidebarGroupLabel>

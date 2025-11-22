@@ -14,6 +14,7 @@ import { useProjectRefresh } from '@/contexts/ProjectContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { getInitials } from '@/lib/utils';
 
 export default function ProjectSettingsPage() {
     const { projectId } = useParams<{ projectId: string }>();
@@ -197,8 +198,8 @@ export default function ProjectSettingsPage() {
                         <ChevronLeft className="h-5 w-5" />
                     </Button>
                     <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-md bg-orange-500 flex items-center justify-center text-white font-semibold text-lg">
-                            {project.title[0].toUpperCase()}
+                        <div className="h-10 w-10 rounded-md bg-violet-800 flex items-center justify-center text-white font-semibold text-lg">
+                            {getInitials(project.title)}
                         </div>
                         <div>
                             <h1 className="text-xl font-semibold">{project.title}</h1>

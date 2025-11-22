@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { LogIn, Loader2 } from 'lucide-react';
+import InputError from '@/components/ui/input-error';
 
 export default function Login() {
     const navigate = useNavigate();
@@ -15,16 +16,20 @@ export default function Login() {
         username_or_email: '',
         password: '',
     });
+    const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
+        setErrors({});
 
         try {
             await login(formData);
             navigate('/dashboard');
-        } catch (error) {
-            console.error('Login error:', error);
+        } catch (error: any) {
+            if (error.response && error.response.data) {
+                setErrors(error.response.data);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -81,6 +86,7 @@ export default function Login() {
                                 autoComplete="current-password"
                             />
                         </div>
+                        <InputError message={errors.error?.[0]} />
                     </CardContent>
                     <CardFooter className="flex flex-col space-y-4 mt-4">
                         <Button type="submit" className="w-full" disabled={isLoading}>

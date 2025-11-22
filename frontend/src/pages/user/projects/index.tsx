@@ -56,7 +56,7 @@ export default function ProjectsPage() {
                         Manage and track your projects
                     </p>
                 </div>
-                <Button onClick={() => setShowCreateDialog(true)}>
+                <Button onClick={() => setShowCreateDialog(true)} className='bg-violet-800 hover:bg-violet-700'>
                     <Plus className="mr-2 h-4 w-4" />
                     New Project
                 </Button>
@@ -86,7 +86,7 @@ export default function ProjectsPage() {
                         >
                             <CardHeader>
                                 <div className="flex items-start justify-between">
-                                    <CardTitle className="line-clamp-1">{project.title}</CardTitle>
+                                    <CardTitle className="line-clamp-1 text-violet-800">{project.title}</CardTitle>
                                 </div>
                                 <CardDescription className="line-clamp-2">
                                     {project.description || 'No description'}

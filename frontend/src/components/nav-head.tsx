@@ -1,4 +1,3 @@
-import React from 'react'
 import { SidebarMenuButton } from './ui/sidebar'
 
 export const NavHead = () => {

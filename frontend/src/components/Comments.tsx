@@ -152,6 +152,7 @@ export function Comments({ taskId }: CommentsProps) {
     };
 
     const handleCommentChange = (value: string) => {
+        console.log(cursorPosition);
         setNewComment(value);
 
         // Check for @ mention

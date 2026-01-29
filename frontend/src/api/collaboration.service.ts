@@ -85,7 +85,7 @@ export const commentService = {
 
 export const notificationService = {
     // Get user notifications
-    getNotifications: async (isRead?: boolean): Promise<Notification[]> => {
+    getNotifications: async (isRead?: boolean): Promise<Notification[] | { results: Notification[]; count: number }> => {
         const params = isRead !== undefined ? { is_read: isRead } : {};
         const response = await api.get('/notifications/', { params });
         return response.data;

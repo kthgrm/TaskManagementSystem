@@ -34,7 +34,7 @@ export function NotificationBell() {
                 notificationService.getUnreadCount(),
             ]);
             // Handle paginated response - API returns { results: [], count: n }
-            const notifs = Array.isArray(notifsResponse) ? notifsResponse : (notifsResponse.results || []);
+            const notifs = Array.isArray(notifsResponse) ? notifsResponse : notifsResponse.results;
             setNotifications(notifs.slice(0, 10)); // Show latest 10
             setUnreadCount(count);
         } catch (error) {

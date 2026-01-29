@@ -1,5 +1,5 @@
 import React from "react"
-import { useLocation } from "react-router-dom"
+// import { useLocation } from "react-router-dom"
 
 import {
     SidebarGroup,
@@ -22,7 +22,7 @@ export function NavProjects({
         badge?: React.ReactNode
     }[]
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
-    const location = useLocation()
+    // const location = useLocation()
 
     return (
         <SidebarGroup {...props}>
